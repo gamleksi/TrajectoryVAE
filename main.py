@@ -29,6 +29,10 @@ parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=False)
 
+parser.add_argument('--normalize', dest='normalize', action='store_true')
+parser.add_argument('--no-normalize', dest='normalize', action='store_false')
+parser.set_defaults(normalize=True)
+
 parser.add_argument('--visdom', dest='visdom', action='store_true')
 parser.add_argument('--no-visdom', dest='visdom', action='store_false')
 parser.set_defaults(visdom=True)
@@ -61,6 +65,7 @@ debug = args.debug
 visdom = args.visdom
 log = args.log
 num_actions = args.num_actions
+normalize = args.normalize
 
 def main():
 
@@ -74,10 +79,10 @@ def main():
 
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    model = TrajectoryVAE(NUM_LATENT_VARIABLES, num_actions, 7, device, beta=beta).to(device)
+    model = TrajectoryVAE(NUM_LATENT_VARIABLES, num_actions, 7, device, normalized_data=normalize, beta=beta).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    dataloader = TrajectoryLoader(BATCH_SIZE, NUM_PROCESSES, num_actions, debug=args.debug)
+    dataloader = TrajectoryLoader(BATCH_SIZE, NUM_PROCESSES, num_actions, normalize=normalize, debug=args.debug)
 
     trainer = Trainer(dataloader, model, NUM_LATENT_VARIABLES, save_folder=folder_name, save_name=file_name, log=log, visdom=visdom, visdom_title=folder_name, debug=debug)
     trainer.train(NUM_EPOCHS, optimizer)

@@ -66,9 +66,9 @@ class TrajectoryDataset(data.Dataset):
 
 class TrajectoryLoader(object):
 
-    def __init__(self, batch_size, num_processes, actions_per_trajectory=20, debug=False):
+    def __init__(self, batch_size, num_processes, actions_per_trajectory=20, normalize=False, debug=False):
 
-        dataset = TrajectoryDataset('/home/aleksi/hacks/behavioural_ws/trajectories', 7, actions_per_trajectory, debug=debug)
+        dataset = TrajectoryDataset('/home/aleksi/hacks/behavioural_ws/trajectories', 7, actions_per_trajectory, normalize=normalize, debug=debug)
         train_size = int(dataset.__len__() * 0.7)
         test_size = dataset.__len__() - train_size
         trainset, testset = torch.utils.data.random_split(dataset.positions, (train_size, test_size))

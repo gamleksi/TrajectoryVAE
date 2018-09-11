@@ -8,50 +8,61 @@ class Encoder(nn.Module):
 
         self.fc1 = nn.Linear(input_size, 1000)
         self.fc2 = nn.Linear(1000, 500)
-        self.fc3 = nn.Linear(500, 250)
+        self.fc3 = nn.Linear(500, 500)
+        self.fc4 = nn.Linear(500, 250)
 
-        self.fc4_loc = nn.Linear(250, output_size)
-        self.fc4_scale = nn.Linear(250, output_size)
+        self.fc5_loc = nn.Linear(250, output_size)
+        self.fc5_scale = nn.Linear(250, output_size)
         self.relu = nn.ReLU()
 
         self.bn1 = nn.BatchNorm1d(1000)
         self.bn2 = nn.BatchNorm1d(500)
-        self.bn3 = nn.BatchNorm1d(250)
+        self.bn3 = nn.BatchNorm1d(500)
+        self.bn4 = nn.BatchNorm1d(250)
 
     def forward(self, x):
+
         x = self.relu(self.bn1(self.fc1(x)))
         x = self.relu(self.bn2(self.fc2(x)))
         x = self.relu(self.bn3(self.fc3(x)))
+        x = self.relu(self.bn4(self.fc4(x)))
 
-        loc = self.fc4_loc(x)
-        scale = self.fc4_scale(x)
+        loc = self.fc5_loc(x)
+        scale = self.fc5_scale(x)
 
         return loc, scale
 
 class Decoder(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, include_sigmoid):
         super(Decoder, self).__init__()
         self.input_size = input_size
 
         self.fc1 = nn.Linear(input_size, 250)
         self.fc2 = nn.Linear(250, 500)
-        self.fc3 = nn.Linear(500, 1000)
-        self.fc4 = nn.Linear(1000, output_size)
+        self.fc3 = nn.Linear(500, 500)
+        self.fc4 = nn.Linear(500, 1000)
+        self.fc5 = nn.Linear(1000, output_size)
 
         self.bn1 = nn.BatchNorm1d(250)
         self.bn2 = nn.BatchNorm1d(500)
-        self.bn3 = nn.BatchNorm1d(1000)
+        self.bn3 = nn.BatchNorm1d(500)
+        self.bn4 = nn.BatchNorm1d(1000)
 
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        self.include_sigmoid = include_sigmoid
+        if self.include_sigmoid:
+            self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
 
         x = self.relu(self.bn1(self.fc1(x)))
         x = self.relu(self.bn2(self.fc2(x)))
         x = self.relu(self.bn3(self.fc3(x)))
-        x = self.sigmoid(self.fc4(x))
-
+        x = self.relu(self.bn4(self.fc4(x)))
+        if self.include_sigmoid:
+            x = self.sigmoid(self.fc5(x))
+        else:
+            x = self.fc5(x)
         return x
 
 from torch.autograd import Variable
@@ -59,9 +70,9 @@ from torch.nn import functional as F
 
 class TrajectoryVAE(nn.Module):
 
-    def __init__(self, NUM_LATENT_VARIABLES, num_actions, num_joints, device, beta=1):
+    def __init__(self, NUM_LATENT_VARIABLES, num_actions, num_joints, device, normalized_data=True, beta=1):
         encoder = Encoder(num_actions *num_joints, NUM_LATENT_VARIABLES)
-        decoder = Decoder(NUM_LATENT_VARIABLES, num_actions * num_joints)
+        decoder = Decoder(NUM_LATENT_VARIABLES, num_actions * num_joints, normalized_data)
         super(TrajectoryVAE, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -120,7 +131,8 @@ class TrajectoryVAE(nn.Module):
         return mu, logvar
 
     def reconstruct(self, sample):
-        x = Variable(sample).to(self.device)
+        assert(len(sample.shape) == 3)
+        trajectory = self.to_vector(sample)
+        x = Variable(trajectory).to(self.device)
         recon,  _, _ = self._forward(x, False)
-
         return self.to_trajectory(recon)
