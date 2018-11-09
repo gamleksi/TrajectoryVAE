@@ -1,8 +1,6 @@
 import os
 import torch
 from model import TrajectoryVAE
-import numpy as np
-from utils import MAX_ANGLE, MIN_ANGLE
 
 ABSOLUTE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -13,6 +11,7 @@ def model_name_search(folder_path):
           splitted = file.split('.pth', 1)
 
   return splitted[0]
+
 
 class ROSTrajectoryVAE(object):
 

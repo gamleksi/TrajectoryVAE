@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
+from torch.nn import functional as F
 
 class Encoder(nn.Module):
     def __init__(self, input_size, output_size):
@@ -32,6 +34,7 @@ class Encoder(nn.Module):
 
         return loc, scale
 
+
 class SimpleEncoder(nn.Module):
     def __init__(self, input_size, output_size):
         super(SimpleEncoder, self).__init__()
@@ -54,8 +57,9 @@ class SimpleEncoder(nn.Module):
 
         return loc, scale
 
+
 class Decoder(nn.Module):
-    def __init__(self, input_size, output_size, include_sigmoid):
+    def __init__(self, input_size, output_size):
         super(Decoder, self).__init__()
         self.input_size = input_size
 
@@ -71,9 +75,7 @@ class Decoder(nn.Module):
         self.bn4 = nn.BatchNorm1d(1000)
 
         self.relu = nn.ReLU()
-        self.include_sigmoid = include_sigmoid
-        if self.include_sigmoid:
-            self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
 
@@ -81,15 +83,12 @@ class Decoder(nn.Module):
         x = self.relu(self.bn2(self.fc2(x)))
         x = self.relu(self.bn3(self.fc3(x)))
         x = self.relu(self.bn4(self.fc4(x)))
-        if self.include_sigmoid:
-            x = self.sigmoid(self.fc5(x))
-        else:
-            x = self.fc5(x)
+        x = self.sigmoid(self.fc5(x))
         return x
 
 
 class SimpleDecoder(nn.Module):
-    def __init__(self, input_size, output_size, include_sigmoid):
+    def __init__(self, input_size, output_size):
         super(SimpleDecoder, self).__init__()
         self.input_size = input_size
 
@@ -98,32 +97,26 @@ class SimpleDecoder(nn.Module):
         self.fc3 = nn.Linear(500, output_size)
 
         self.relu = nn.ReLU()
-        self.include_sigmoid = include_sigmoid
-        if self.include_sigmoid:
-            self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
 
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
-        if self.include_sigmoid:
-            x = self.sigmoid(self.fc3(x))
-        else:
-            x = self.fc3(x)
+        x = self.sigmoid(self.fc3(x))
         return x
 
-from torch.autograd import Variable
-from torch.nn import functional as F
 
 class TrajectoryVAE(nn.Module):
 
-    def __init__(self, NUM_LATENT_VARIABLES, num_actions, num_joints, device, normalized_data=True, simple_model=True, beta=1):
+    def __init__(self, NUM_LATENT_VARIABLES, num_actions, num_joints, device, simple_model=True, beta=1):
+
         if simple_model:
             encoder = SimpleEncoder(num_actions *num_joints, NUM_LATENT_VARIABLES)
-            decoder = SimpleDecoder(NUM_LATENT_VARIABLES, num_actions * num_joints, normalized_data)
+            decoder = SimpleDecoder(NUM_LATENT_VARIABLES, num_actions * num_joints)
         else:
             encoder = Encoder(num_actions *num_joints, NUM_LATENT_VARIABLES)
-            decoder = Decoder(NUM_LATENT_VARIABLES, num_actions * num_joints, normalized_data)
+            decoder = Decoder(NUM_LATENT_VARIABLES, num_actions * num_joints)
 
         super(TrajectoryVAE, self).__init__()
         self.encoder = encoder
@@ -140,12 +133,14 @@ class TrajectoryVAE(nn.Module):
             self.eval()
 
     def _forward(self, x, train):
+
         self.set_mode(train)
-        mu, logvar  = self.encoder(x)
-        z = self._reparameterize(mu, logvar, train)
+        mu, logvar = self.encoder(x)
+        z = self._reparametrize(mu, logvar, train)
         return self.decoder(z), mu, logvar
 
-    def _reparameterize(self, mu, logvar, train):
+    def _reparametrize(self, mu, logvar, train):
+
         if train:
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std).to(self.device)
@@ -168,7 +163,6 @@ class TrajectoryVAE(nn.Module):
         x = Variable(trajectories)
         train = state[1]
         x_recon,  mu, log_var = self._forward(x, train)
-
 
 # Weight experiments
 #        coef = torch.linspace(1, 14, 140).to(self.device)

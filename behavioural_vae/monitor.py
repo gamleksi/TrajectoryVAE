@@ -11,7 +11,7 @@ import os
 
 class Trainer(Engine):
 
-    def __init__(self, dataloader, model, latent_dim, save_folder=None, save_name=None, log=False, visdom=True, server='localhost', port=8097, visdom_title="mnist_meterlogger", debug=False):
+    def __init__(self, dataloader, model, save_folder=None, save_name=None, log=False, visdom=True, server='localhost', port=8097, visdom_title="mnist_meterlogger", debug=False):
         super(Trainer, self).__init__()
 
         self.debug = debug
@@ -115,32 +115,4 @@ class Trainer(Engine):
                 row[name] = fields[i]
 
             writer.writerow(row)
-
-
-#class Demonstrator(Trainer):
-#
-#    def __init__(self,  folder, model_name, model, data_loader, visdom_title='training_results'):
-#        super(Demonstrator, self).__init__(data_loader, visdom_title=visdom_title, visdom=True)
-#        self.model = model
-#        self.load_parameters(folder, model_name)
-#
-#    def initialize_engine(self):
-#        self.hooks['on_sample'] = self.on_sample
-#        self.hooks['on_forward'] = self.on_forward
-#
-#    def load_parameters(self, folder, model_name):
-#        Path = os.path.join('log/{}'.format(folder), '{}.pth.tar'.format(model_name))
-#        self.model.load_state_dict(torch.load(Path))
-#        self.model.eval()
-#
-#    def evaluate(self):
-#        self.test(self.model.evaluate, self.get_iterator(False))
-#        val_loss = self.meter_loss.value()[0]
-#
-#        print('Testing loss: %.4f' % (val_loss))
-#
-#        self.generate_visdom_samples(self.visdom_samples)
-#        self.generate_latent_samples(self.visdom_samples[0])
-
-
 
