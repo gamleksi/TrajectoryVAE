@@ -38,7 +38,7 @@ parser.set_defaults(log=True)
 
 parser.add_argument('--simple', dest='simple', action='store_true')
 parser.add_argument('--no-simple', dest='simple', action='store_false')
-parser.set_defaults(debug=False)
+parser.set_defaults(simple=True)
 
 def use_cuda():
 
@@ -54,7 +54,6 @@ def use_cuda():
 
 def get_dataset_path(folder_name, dataset_root):
     return os.path.join(dataset_root, folder_name, 'trajectories.pkl')
-
 
 def define_model_name(beta, latent_size, lr):
     file_name = 'model_b_{}_l_{}_lr_{}'.format(beta, latent_size, lr)
@@ -103,4 +102,5 @@ def main(args):
 if __name__ == '__main__':
 
     args = parser.parse_args()
+
     main(args)

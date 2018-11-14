@@ -19,7 +19,6 @@ class TrajectoryDataset(data.Dataset):
         self.time_steps = np.zeros([self.num_samples, self.num_actions])
         self.process_trajectories(time_steps_raw, positions_raw)
 
-
     def __getitem__(self, index):
         return  torch.from_numpy(self.positions[index]).float()
 
@@ -43,7 +42,6 @@ class TrajectoryDataset(data.Dataset):
 class TrajectoryLoader(object):
 
     def __init__(self, batch_size, num_processes, file_path, actions_per_trajectory=20, num_joints=7):
-
 
         self.dataset = TrajectoryDataset(file_path, num_joints, actions_per_trajectory)
         train_size = int(self.dataset.__len__() * 0.7)
