@@ -51,6 +51,7 @@ class TrajectoryLoader(object):
         self.num_processes = num_processes
         self.trainset = trainset
         self.testset = testset
+        self.visualset = testset[:20]
 
     def get_iterator(self, train):
 
@@ -61,8 +62,14 @@ class TrajectoryLoader(object):
 
         return torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=train, num_workers=self.num_processes)
 
+    def visual_trajectories(self):
+        return torch.from_numpy(self.visualset)
+
 if __name__ == '__main__':
 
     loader = TrajectoryLoader(10, 4,
                               '/home/aleksi/mujoco_ws/src/motion_planning/trajectory_data/example/trajectories.pkl')
     loader.dataset.__getitem__(0)
+    visuals = loader.visual_trajectories()
+    print(visuals.shape)
+

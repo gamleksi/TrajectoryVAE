@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-
+from visual import TrajectoryVisualizer
 import torchnet as tnt
 from torchnet.engine import Engine
 from torchnet.logger import MeterLogger
@@ -15,6 +15,7 @@ class Trainer(Engine):
         super(Trainer, self).__init__()
 
         self.debug = debug
+        self.dataloader = dataloader
         self.get_iterator = dataloader.get_iterator
         self.meter_loss = tnt.meter.AverageValueMeter()
         self.initialize_engine()
@@ -28,6 +29,8 @@ class Trainer(Engine):
             self.best_loss = np.inf
         else:
             assert(save_folder is None and save_name is None)
+
+        self.save_folder = save_folder
         self.visdom = visdom
         self.mlog = MeterLogger(server=server, port=port, title=visdom_title)
 
@@ -61,6 +64,14 @@ class Trainer(Engine):
 
         state['iterator'] = tqdm(state['iterator'])
 
+    def visual_trajectories(self, epoch):
+        trajectories = self.dataloader.visual_trajectories().float()
+        results = self.model.reconstruct(trajectories)
+        results = results.detach().cpu()
+        visual = TrajectoryVisualizer(os.path.join("log", self.save_folder, "trajectories_{}".format(epoch)))
+        for i in range(results.shape[0]):
+            visual.generate_image(trajectories[i], results[i], file_name="{}_sample".format(i))
+
     def on_end_epoch(self, state):
 
         train_loss = self.meter_loss.value()[0]
@@ -77,9 +88,13 @@ class Trainer(Engine):
 
                 self.log_csv(train_loss, val_loss, val_loss < self.best_loss)
 
+                if int(state['epoch']) % 25 == 0:
+                    self.visual_trajectories(state['epoch'])
+
                 if val_loss < self.best_loss:
                     self.save_model()
                     self.best_loss = val_loss
+
             self.mlog.print_meter(mode="Test", iepoch=state['epoch'])
             self.mlog.reset_meter(mode="Test", iepoch=state['epoch'])
 

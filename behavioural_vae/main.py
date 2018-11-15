@@ -94,7 +94,7 @@ def main(args):
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 
     trainer = Trainer(dataloader, model, save_folder=log_folder, save_name=model_name, log=do_log,
-                      visdom=visdom, visdom_title=log_folder)
+                      visdom=visdom, visdom_title=log_folder, debug=debug)
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     trainer.train(num_epoch, optimizer)
