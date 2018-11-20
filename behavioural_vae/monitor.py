@@ -27,8 +27,6 @@ class Trainer(Engine):
             assert(save_folder is not None and save_name is not None)
             self.initilize_log(save_folder, save_name)
             self.best_loss = np.inf
-        else:
-            assert(save_folder is None and save_name is None)
 
         self.save_folder = save_folder
         self.visdom = visdom
@@ -62,7 +60,7 @@ class Trainer(Engine):
         if self.visdom:
             self.mlog.timer.reset()
 
-        state['iterator'] = tqdm(state['iterator'])
+        # state['iterator'] = tqdm(state['iterator'])
 
     def visual_trajectories(self, epoch):
         trajectories = self.dataloader.visual_trajectories().float()
@@ -70,7 +68,8 @@ class Trainer(Engine):
         results = results.detach().cpu()
         visual = TrajectoryVisualizer(os.path.join("log", self.save_folder, "trajectories_{}".format(epoch)))
         for i in range(results.shape[0]):
-            visual.generate_image(trajectories[i], results[i], file_name="{}_sample".format(i))
+            visual.generate_image(trajectories[i], results[i], file_name="{}_image".format(i))
+            visual.plot_trajectory(trajectories[i], results[i], file_name="{}_trajectory".format(i))
 
     def on_end_epoch(self, state):
 
@@ -88,7 +87,7 @@ class Trainer(Engine):
 
                 self.log_csv(train_loss, val_loss, val_loss < self.best_loss)
 
-                if int(state['epoch']) % 25 == 0:
+                if int(state['epoch']) % 100 == 0:
                     self.visual_trajectories(state['epoch'])
 
                 if val_loss < self.best_loss:

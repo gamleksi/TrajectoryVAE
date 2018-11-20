@@ -106,17 +106,20 @@ class SimpleDecoder(nn.Module):
         x = self.sigmoid(self.fc3(x))
         return x
 
+import conv_model as cm
 
 class TrajectoryVAE(nn.Module):
 
-    def __init__(self, NUM_LATENT_VARIABLES, num_actions, num_joints, device, simple_model=True, beta=1):
+    def __init__(self, latent_size, num_actions, num_joints, device, conv_model=True, beta=1):
 
-        if simple_model:
-            encoder = SimpleEncoder(num_actions *num_joints, NUM_LATENT_VARIABLES)
-            decoder = SimpleDecoder(NUM_LATENT_VARIABLES, num_actions * num_joints)
+        self.conv_model = conv_model
+
+        if self.conv_model:
+            encoder = cm.Encoder(num_actions, num_joints, latent_size)
+            decoder = cm.Decoder(num_actions, num_joints, latent_size)
         else:
-            encoder = Encoder(num_actions *num_joints, NUM_LATENT_VARIABLES)
-            decoder = Decoder(NUM_LATENT_VARIABLES, num_actions * num_joints)
+            encoder = SimpleEncoder(num_actions *num_joints, latent_size)
+            decoder = SimpleDecoder(latent_size, num_actions * num_joints)
 
         super(TrajectoryVAE, self).__init__()
         self.encoder = encoder
@@ -148,18 +151,22 @@ class TrajectoryVAE(nn.Module):
         else:
             return mu
 
-    def to_vector(self, trajectory):
-        return trajectory.reshape([trajectory.shape[0], self.num_actions * self.num_joints]).to(self.device).float()
+    def to_torch(self, trajectories):
+        assert(len(trajectories.shape) == 3)
+        if self.conv_model:
+            return trajectories.unsqueeze(1).to(self.device).float()
+        else:
+            return trajectories.reshape([trajectories.shape[0], self.num_actions * self.num_joints]).to(self.device).float()
 
     def to_trajectory(self, vec):
         return vec.reshape([vec.shape[0], self.num_actions, self.num_joints])
 
     def evaluate(self, state):
+
         # state includes batch samples and a train / test flag
         # samples should be tensors and processed in loader function.
-        assert(len(state[0].shape) == 3)
-        trajectories = self.to_vector(state[0])
 
+        trajectories = self.to_torch(state[0])
         x = Variable(trajectories)
         train = state[1]
         x_recon,  mu, log_var = self._forward(x, train)
@@ -184,15 +191,13 @@ class TrajectoryVAE(nn.Module):
         return mu, logvar
 
     def decode(self, sample):
-
         assert(len(sample.shape) == 2)
         self.set_mode(False)
         z = Variable(sample.to(self.device))
         return self.to_trajectory(self.decoder(z))
 
     def reconstruct(self, sample):
-        assert(len(sample.shape) == 3)
-        trajectory = self.to_vector(sample)
+        trajectory = self.to_torch(sample)
         x = Variable(trajectory).to(self.device)
         recon,  _, _ = self._forward(x, False)
         return self.to_trajectory(recon)

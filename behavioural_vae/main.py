@@ -16,7 +16,7 @@ parser.add_argument('--batch_size', default=552, type=int)
 parser.add_argument('--num_workers', default=18, type=int)
 parser.add_argument('--beta', default=4, type=float)
 
-parser.add_argument('--num_actions', default=20, type=int)
+parser.add_argument('--num_actions', default=24, type=int)
 parser.add_argument('--num_joints', default=7, type=int)
 
 parser.add_argument('--dataset-name', default='example', type=str)
@@ -36,9 +36,13 @@ parser.add_argument('--log', dest='log', action='store_true')
 parser.add_argument('--no-log', dest='log', action='store_false')
 parser.set_defaults(log=True)
 
-parser.add_argument('--simple', dest='simple', action='store_true')
-parser.add_argument('--no-simple', dest='simple', action='store_false')
-parser.set_defaults(simple=True)
+#parser.add_argument('--simple', dest='simple', action='store_true')
+#parser.add_argument('--no-simple', dest='simple', action='store_false')
+#parser.set_defaults(simple=True)
+
+parser.add_argument('--conv', dest='conv', action='store_true')
+parser.add_argument('--no-conv', dest='conv', action='store_false')
+parser.set_defaults(conv=False)
 
 def use_cuda():
 
@@ -89,7 +93,7 @@ def main(args):
 
     assert(os.path.exists(dataset_path))
 
-    model = TrajectoryVAE(latent_size, num_actions, num_joints, device, simple_model=args.simple, beta=beta).to(device)
+    model = TrajectoryVAE(latent_size, num_actions, num_joints, device, conv_model=args.conv, beta=beta).to(device)
 
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 

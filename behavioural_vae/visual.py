@@ -28,7 +28,25 @@ class TrajectoryVisualizer(object):
             plt.show()
         else:
             plt.savefig(os.path.join(self.sample_path, '{}.png'.format(file_name)))
-            plt.close()
+        plt.close()
+
+    def plot_trajectory(self, original, reconstructed, file_name=None):
+        fig = plt.figure(figsize=(30, 30))
+        columns = 1
+        original = original.numpy()
+        reconstructed = reconstructed.numpy()
+        rows = original.shape[1]
+        steps = range(1, original.shape[0] + 1)
+        for i in range(rows):
+            fig.add_subplot(rows, columns, i + 1)
+            plt.plot(steps, original[:, i], 'ro', steps, reconstructed[:, i], 'bo')
+            # plt.legend('Original', 'Reconstructed')
+
+        if file_name is None:
+            plt.show()
+        else:
+            plt.savefig(os.path.join(self.sample_path, '{}.png'.format(file_name)))
+        plt.close()
 
 if __name__ == '__main__':
     TrajectoryVisualizer(os.path.join('log', 'lumi_v3'))
