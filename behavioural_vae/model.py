@@ -154,12 +154,13 @@ class TrajectoryVAE(nn.Module):
     def to_torch(self, trajectories):
         assert(len(trajectories.shape) == 3)
         if self.conv_model:
-            return trajectories.unsqueeze(1).to(self.device).float()
+            return trajectories.to(self.device).float()
+            # return trajectories.unsqueeze(1).to(self.device).float()
         else:
             return trajectories.reshape([trajectories.shape[0], self.num_actions * self.num_joints]).to(self.device).float()
 
     def to_trajectory(self, vec):
-        return vec.reshape([vec.shape[0], self.num_actions, self.num_joints])
+        return vec.reshape([vec.shape[0], self.num_joints, self.num_actions])
 
     def evaluate(self, state):
 

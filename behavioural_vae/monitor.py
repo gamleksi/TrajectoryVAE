@@ -11,7 +11,7 @@ import os
 
 class Trainer(Engine):
 
-    def __init__(self, dataloader, model, save_folder=None, save_name=None, log=False, visdom=True, server='localhost', port=8097, visdom_title="mnist_meterlogger", debug=False):
+    def __init__(self, dataloader, model, save_folder=None, save_name=None, log=False, debug=False):
         super(Trainer, self).__init__()
 
         self.debug = debug
@@ -22,15 +22,13 @@ class Trainer(Engine):
 
         self.model = model
         self.log_data = log
+        self.save_folder = save_folder
 
         if self.log_data:
             assert(save_folder is not None and save_name is not None)
             self.initilize_log(save_folder, save_name)
             self.best_loss = np.inf
-
-        self.save_folder = save_folder
-        self.visdom = visdom
-        self.mlog = MeterLogger(server=server, port=port, title=visdom_title)
+            self.visualizer = TrajectoryVisualizer(os.path.join("log", self.save_folder))
 
     def initialize_engine(self):
         self.hooks['on_sample'] = self.on_sample
@@ -50,52 +48,42 @@ class Trainer(Engine):
     def on_forward(self, state):
         loss = state['loss']
         self.meter_loss.add(loss.item())
-        if self.visdom:
-            self.mlog.update_loss(loss, meter='loss')
 
     def on_start_epoch(self, state):
 
         self.model.train(True)
         self.reset_meters()
-        if self.visdom:
-            self.mlog.timer.reset()
-
-        # state['iterator'] = tqdm(state['iterator'])
 
     def visual_trajectories(self, epoch):
         trajectories = self.dataloader.visual_trajectories().float()
         results = self.model.reconstruct(trajectories)
         results = results.detach().cpu()
-        visual = TrajectoryVisualizer(os.path.join("log", self.save_folder, "trajectories_{}".format(epoch)))
+        folder = "trajectories_{}".format(epoch)
         for i in range(results.shape[0]):
-            visual.generate_image(trajectories[i], results[i], file_name="{}_image".format(i))
-            visual.plot_trajectory(trajectories[i], results[i], file_name="{}_trajectory".format(i))
+            self.visualizer.generate_image(trajectories[i], results[i], file_name="{}_image".format(i), folder=folder)
+            self.visualizer.plot_trajectory(trajectories[i], results[i], file_name="{}_trajectory".format(i), folder=folder)
 
     def on_end_epoch(self, state):
 
+        epoch = int(state['epoch'])
         train_loss = self.meter_loss.value()[0]
+        print("EPOCH: {}".format(epoch))
+        print("Avg Training loss: {}".format(train_loss))
         self.reset_meters()
-        if self.visdom:
+        self.test(self.model.evaluate, self.get_iterator(False))
+        val_loss = self.meter_loss.value()[0]
+        print("Avg Validation loss: {}".format(val_loss))
 
-            self.mlog.print_meter(mode="Train", iepoch=state['epoch'])
-            self.mlog.reset_meter(mode="Train", iepoch=state['epoch'])
+        if self.log_data:
+            self.visualizer.update_losses(train_loss, val_loss)
+            self.log_csv(train_loss, val_loss, val_loss < self.best_loss)
 
-            self.test(self.model.evaluate, self.get_iterator(False))
-            val_loss = self.meter_loss.value()[0]
+            if val_loss < self.best_loss:
+                self.save_model()
+                self.best_loss = val_loss
 
-            if self.log_data:
-
-                self.log_csv(train_loss, val_loss, val_loss < self.best_loss)
-
-                if int(state['epoch']) % 100 == 0:
-                    self.visual_trajectories(state['epoch'])
-
-                if val_loss < self.best_loss:
-                    self.save_model()
-                    self.best_loss = val_loss
-
-            self.mlog.print_meter(mode="Test", iepoch=state['epoch'])
-            self.mlog.reset_meter(mode="Test", iepoch=state['epoch'])
+            if epoch % 25 == 0:
+                self.visual_trajectories(epoch)
 
     def initilize_log(self, save_folder, save_name):
 

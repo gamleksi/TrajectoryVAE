@@ -28,10 +28,6 @@ parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=False)
 
-parser.add_argument('--visdom', dest='visdom', action='store_true')
-parser.add_argument('--no-visdom', dest='visdom', action='store_false')
-parser.set_defaults(visdom=True)
-
 parser.add_argument('--log', dest='log', action='store_true')
 parser.add_argument('--no-log', dest='log', action='store_false')
 parser.set_defaults(log=True)
@@ -83,7 +79,6 @@ def main(args):
     # Model Save
     log_folder = args.folder_name
     model_name = define_model_name(beta, latent_size, lr)
-    visdom = args.visdom
     do_log = args.log
 
     if debug:
@@ -97,8 +92,7 @@ def main(args):
 
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 
-    trainer = Trainer(dataloader, model, save_folder=log_folder, save_name=model_name, log=do_log,
-                      visdom=visdom, visdom_title=log_folder, debug=debug)
+    trainer = Trainer(dataloader, model, save_folder=log_folder, save_name=model_name, log=do_log, debug=debug)
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     trainer.train(num_epoch, optimizer)
