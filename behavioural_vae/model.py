@@ -110,13 +110,14 @@ import conv_model as cm
 
 class TrajectoryVAE(nn.Module):
 
-    def __init__(self, latent_size, num_actions, num_joints, device, conv_model=True, beta=1):
+    def __init__(self, latent_size, num_actions,  num_joints, device, num_epoch=100,
+                 conv_model=True, kernel_row=4, conv_channel=2, beta_min=1.0e-4, beta_max=1.0e-1):
 
         self.conv_model = conv_model
 
         if self.conv_model:
-            encoder = cm.Encoder(num_actions, num_joints, latent_size)
-            decoder = cm.Decoder(num_actions, num_joints, latent_size)
+            encoder = cm.Encoder(num_actions, num_joints, latent_size, kernel_row=kernel_row, channel_out=conv_channel)
+            decoder = cm.Decoder(num_actions, num_joints, latent_size, kernel_row=kernel_row, channel_in=conv_channel)
         else:
             encoder = SimpleEncoder(num_actions *num_joints, latent_size)
             decoder = SimpleDecoder(latent_size, num_actions * num_joints)
@@ -127,7 +128,10 @@ class TrajectoryVAE(nn.Module):
         self.device = device
         self.num_actions = num_actions
         self.num_joints = num_joints
-        self.beta = beta
+        self.beta_min = beta_min
+        self.beta_max = beta_max
+        self.epoch_max = num_epoch
+        self.current_epoch = 0.
 
     def set_mode(self, train):
         if train:
@@ -162,6 +166,9 @@ class TrajectoryVAE(nn.Module):
     def to_trajectory(self, vec):
         return vec.reshape([vec.shape[0], self.num_joints, self.num_actions])
 
+    def new_epoch(self):
+        self.current_epoch += 1
+
     def evaluate(self, state):
 
         # state includes batch samples and a train / test flag
@@ -172,17 +179,12 @@ class TrajectoryVAE(nn.Module):
         train = state[1]
         x_recon,  mu, log_var = self._forward(x, train)
 
-# Weight experiments
-#        coef = torch.linspace(1, 14, 140).to(self.device)
-#        weighted_target = coef * trajectories / 14
-#        weighted_recon = coef * x_recon / 14
-#        BCE = F.binary_cross_entropy(weighted_recon, weighted_target, size_average=False)
-
         BCE = F.binary_cross_entropy(x_recon, trajectories, size_average=False)
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-        return BCE + self.beta * KLD, self.to_trajectory(x_recon)
+        beta = self.beta_min + (self.beta_max - self.beta_min) * self.current_epoch / self.epoch_max
+        return BCE + beta * KLD, self.to_trajectory(x_recon)
 
     def latent_distribution(self, sample):
         self.set_mode(False)

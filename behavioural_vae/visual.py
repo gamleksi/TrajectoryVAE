@@ -57,8 +57,8 @@ class TrajectoryVisualizer(object):
     def plot_trajectory(self, original, reconstructed, file_name=None, folder=None):
         fig = plt.figure(figsize=(30, 30))
         columns = 1
-        original = original.transpose(1, 0).numpy()
-        reconstructed = reconstructed.transpose(1, 0).numpy()
+        original = original.transpose(1, 0)
+        reconstructed = reconstructed.transpose(1, 0)
         rows = original.shape[1]
         steps = range(1, original.shape[0] + 1)
         for i in range(rows):

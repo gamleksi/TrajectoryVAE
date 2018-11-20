@@ -15,10 +15,9 @@ class TrajectoryDataset(data.Dataset):
         time_steps_raw, positions_raw, _, _ = self.load_trajectories(file_path)
 
         self.num_samples =  time_steps_raw.shape[0]
-        self.positions = np.zeros([self.num_samples, self.num_actions, self.num_joints])
+        self.positions = np.zeros([self.num_samples, self.num_joints, self.num_actions])
         self.time_steps = np.zeros([self.num_samples, self.num_actions])
         self.process_trajectories(time_steps_raw, positions_raw)
-        self.positions = self.positions.transpose(0, 2, 1)
 
     def __getitem__(self, index):
         return  torch.from_numpy(self.positions[index]).float()

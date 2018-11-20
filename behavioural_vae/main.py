@@ -12,9 +12,8 @@ parser = argparse.ArgumentParser(description='Variational Autoencoder for Trajec
 parser.add_argument('--lr', default=1.0e-3, type=float, help='Learning rate')
 parser.add_argument('--latent_size', default=4, type=int, help='Number of latent variables')
 parser.add_argument('--num_epoch', default=20, type=int, help='Number of epochs')
-parser.add_argument('--batch_size', default=552, type=int)
+parser.add_argument('--batch-size', default=552, type=int)
 parser.add_argument('--num_workers', default=18, type=int)
-parser.add_argument('--beta', default=4, type=float)
 
 parser.add_argument('--num_actions', default=24, type=int)
 parser.add_argument('--num_joints', default=7, type=int)
@@ -40,6 +39,9 @@ parser.add_argument('--conv', dest='conv', action='store_true')
 parser.add_argument('--no-conv', dest='conv', action='store_false')
 parser.set_defaults(conv=False)
 
+parser.add_argument('--conv-channel', default=2, type=int, help='1D conv out channel')
+parser.add_argument('--kernel-row', default=4, type=int, help='Size of Kernel window in 1D')
+
 def use_cuda():
 
     use_cuda = torch.cuda.is_available()
@@ -55,8 +57,8 @@ def use_cuda():
 def get_dataset_path(folder_name, dataset_root):
     return os.path.join(dataset_root, folder_name, 'trajectories.pkl')
 
-def define_model_name(beta, latent_size, lr):
-    file_name = 'model_b_{}_l_{}_lr_{}'.format(beta, latent_size, lr)
+def define_model_name(latent_size, lr):
+    file_name = 'model_l_{}_lr_{}'.format(latent_size, lr)
     return file_name
 
 def main(args):
@@ -64,7 +66,6 @@ def main(args):
     # Model parameters
     lr = args.lr
     latent_size = args.latent_size
-    beta = args.beta
     num_actions = args.num_actions
     num_joints = args.num_joints
 
@@ -78,7 +79,7 @@ def main(args):
 
     # Model Save
     log_folder = args.folder_name
-    model_name = define_model_name(beta, latent_size, lr)
+    model_name = define_model_name(latent_size, lr)
     do_log = args.log
 
     if debug:
@@ -88,7 +89,8 @@ def main(args):
 
     assert(os.path.exists(dataset_path))
 
-    model = TrajectoryVAE(latent_size, num_actions, num_joints, device, conv_model=args.conv, beta=beta).to(device)
+    model = TrajectoryVAE(latent_size, num_actions, num_joints, device, num_epoch=num_epoch,
+                          conv_model=args.conv, kernel_row=args.kernel_row, conv_channel=args.conv_channel).to(device)
 
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 

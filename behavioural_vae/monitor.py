@@ -3,8 +3,6 @@ import torch
 from visual import TrajectoryVisualizer
 import torchnet as tnt
 from torchnet.engine import Engine
-from torchnet.logger import MeterLogger
-from tqdm import tqdm
 import csv
 import os
 
@@ -50,7 +48,7 @@ class Trainer(Engine):
         self.meter_loss.add(loss.item())
 
     def on_start_epoch(self, state):
-
+        self.model.new_epoch()
         self.model.train(True)
         self.reset_meters()
 
@@ -61,7 +59,7 @@ class Trainer(Engine):
         folder = "trajectories_{}".format(epoch)
         for i in range(results.shape[0]):
             self.visualizer.generate_image(trajectories[i], results[i], file_name="{}_image".format(i), folder=folder)
-            self.visualizer.plot_trajectory(trajectories[i], results[i], file_name="{}_trajectory".format(i), folder=folder)
+            self.visualizer.plot_trajectory(trajectories[i].numpy(), results[i].numpy(), file_name="{}_trajectory".format(i), folder=folder)
 
     def on_end_epoch(self, state):
 

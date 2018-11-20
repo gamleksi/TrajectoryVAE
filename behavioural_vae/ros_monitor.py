@@ -28,6 +28,7 @@ class ROSTrajectoryVAE(object):
         self.load_parameters(model_folder, root_path)
 
     def load_parameters(self, folder, root_path):
+
         model_path = os.path.join(root_path, 'log', folder)
         model_name = model_name_search(model_path)
         path = os.path.join(model_path, '{}.pth.tar'.format(model_name))
@@ -48,8 +49,25 @@ class ROSTrajectoryVAE(object):
         recon = self.model.decode(sample)
         return recon[0].detach().cpu().numpy()
 
+
+class RosTrajectoryConvVAE(ROSTrajectoryVAE):
+
+    def __init__(self, model_folder, latent_size, num_actions, kernel_row, conv_channel, num_joints=7,  root_path=ABSOLUTE_DIR):
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        if device.type == 'cuda':
+            print('GPU works!')
+        else:
+            print('YOU ARE NOT USING GPU')
+
+        self.model = TrajectoryVAE(latent_size, num_actions, num_joints, device,
+                          conv_model=True, kernel_row=kernel_row, conv_channel=conv_channel).to(device)
+
+        self.load_parameters(model_folder, root_path)
+
 def main():
-    return ROSTrajectoryVAE('weight_model1', 5, 20)
+    return RosTrajectoryConvVAE('lumi_1DConv_b-1_l-5_a-32_ch-8', 5, 32, 4, 2)
 
 if __name__  == '__main__':
     model = main()
