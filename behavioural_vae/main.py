@@ -1,5 +1,6 @@
 import os
 import torch
+import numpy as np
 import torch.optim as optim
 from trajectory_loader import TrajectoryLoader
 
@@ -60,6 +61,9 @@ def get_dataset_path(folder_name, dataset_root):
 def define_model_name(latent_size, lr):
     file_name = 'model_l_{}_lr_{}'.format(latent_size, lr)
     return file_name
+
+np.random.seed(seed=7)
+torch.manual_seed(7)
 
 def main(args):
 

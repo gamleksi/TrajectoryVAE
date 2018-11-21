@@ -87,6 +87,8 @@ class Decoder(nn.Module):
         return x
 
 
+
+
 class SimpleDecoder(nn.Module):
     def __init__(self, input_size, output_size):
         super(SimpleDecoder, self).__init__()
@@ -108,10 +110,26 @@ class SimpleDecoder(nn.Module):
 
 import conv_model as cm
 
+
+def gauss_init(net):
+    for m in net.modules():
+        if isinstance(m, nn.Conv1d):
+            torch.nn.init.normal_(m.weight, std=0.01)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.BatchNorm1d):
+            torch.nn.init.constant_(m.weight, 1)
+            torch.nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.Linear):
+            torch.nn.init.normal_(m.weight, std=1e-3)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
+
+
 class TrajectoryVAE(nn.Module):
 
     def __init__(self, latent_size, num_actions,  num_joints, device, num_epoch=100,
-                 conv_model=True, kernel_row=4, conv_channel=2, beta_min=1.0e-4, beta_max=1.0e-1):
+                 conv_model=True, kernel_row=4, conv_channel=2, beta_min=1.0e-4, beta_max=1.0e-0):
 
         self.conv_model = conv_model
 
@@ -122,7 +140,11 @@ class TrajectoryVAE(nn.Module):
             encoder = SimpleEncoder(num_actions *num_joints, latent_size)
             decoder = SimpleDecoder(latent_size, num_actions * num_joints)
 
+        gauss_init(encoder)
+        gauss_init(decoder)
+
         super(TrajectoryVAE, self).__init__()
+
         self.encoder = encoder
         self.decoder = decoder
         self.device = device
