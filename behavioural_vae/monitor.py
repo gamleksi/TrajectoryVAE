@@ -6,6 +6,44 @@ from torchnet.engine import Engine
 import csv
 import os
 
+class Saver(object):
+
+    def __init__(self, model_name, save_path, debug):
+        self.model_name = model_name
+        self.save_path = save_path
+        self.beta_update = 0
+
+        if not(debug):
+            assert(not(os.path.exists(self.save_path))) # remove a current folder with the same name or rename the suggested folder
+            os.makedirs(self.save_path)
+        elif not(os.path.exists(self.save_path)):
+            os.makedirs(self.save_path)
+
+    def update_beta(self, beta_updated):
+        if beta_updated:
+            self.beta_update += 1
+
+    def log_csv(self, train_loss, val_loss, improved):
+
+        fieldnames = ['train_loss', 'val_loss', 'improved', 'beta_update']
+        fields = [train_loss, val_loss, int(improved), self.beta_update]
+        csv_path = os.path.join(self.save_path, 'log.csv')
+        file_exists = os.path.isfile(csv_path)
+
+        with open(csv_path, 'a') as f:
+            writer = csv.DictWriter(f, delimiter=',', fieldnames=fieldnames)
+            if not(file_exists):
+                writer.writeheader()
+            row = {}
+            for i, name in enumerate(fieldnames):
+                row[name] = fields[i]
+
+            writer.writerow(row)
+
+    def save_model(self, model):
+
+        model_path = os.path.join(self.save_path, '{}_iter_{}.pth.tar'.format(self.model_name, self.beta_update))
+        torch.save(model.state_dict(), model_path)
 
 class Trainer(Engine):
 
@@ -24,7 +62,7 @@ class Trainer(Engine):
 
         if self.log_data:
             assert(save_folder is not None and save_name is not None)
-            self.initilize_log(save_folder, save_name)
+            self.saver = Saver(save_name, os.path.join('log', self.save_folder), self.debug)
             self.best_loss = np.inf
             self.visualizer = TrajectoryVisualizer(os.path.join("log", self.save_folder))
 
@@ -74,45 +112,17 @@ class Trainer(Engine):
 
         if self.log_data:
             self.visualizer.update_losses(train_loss, val_loss)
-            self.log_csv(train_loss, val_loss, val_loss < self.best_loss)
 
-            if val_loss < self.best_loss:
-                self.save_model()
+            self.saver.update_beta(self.model.beta_updated())
+            self.saver.log_csv(train_loss, val_loss, val_loss < self.best_loss or self.model.beta_updated())
+
+            if val_loss < self.best_loss or self.model.beta_updated():
+                self.saver.save_model(self.model)
                 self.best_loss = val_loss
 
-            if epoch % 25 == 0:
+            if epoch % self.model.beta_interval - 1 == 0:
                 self.visual_trajectories(epoch)
 
-    def initilize_log(self, save_folder, save_name):
 
-        self.log_path = 'log/{}'.format(save_folder)
 
-        if not(self.debug):
-            assert(not(os.path.exists(self.log_path))) # remove a current folder with the same name or rename the suggested folder
-            os.makedirs(self.log_path)
-        elif not(os.path.exists(self.log_path)):
-            os.makedirs(self.log_path)
-
-        self.csv_path = os.path.join(self.log_path, 'log_{}.csv'.format(save_name))
-        self.model_path = os.path.join(self.log_path, '{}.pth.tar'.format(save_name))
-
-    def save_model(self):
-        torch.save(self.model.state_dict(), self.model_path)
-
-    def log_csv(self, train_loss, val_loss, improved):
-
-        fieldnames = ['train_loss', 'val_loss', 'improved']
-        fields = [train_loss, val_loss, int(improved)]
-
-        file_exists = os.path.isfile(self.csv_path)
-
-        with open(self.csv_path, 'a') as f:
-            writer = csv.DictWriter(f, delimiter=',', fieldnames=fieldnames)
-            if not(file_exists):
-                writer.writeheader()
-            row = {}
-            for i, name in enumerate(fieldnames):
-                row[name] = fields[i]
-
-            writer.writerow(row)
 

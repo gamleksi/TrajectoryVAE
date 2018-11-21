@@ -129,7 +129,7 @@ def gauss_init(net):
 class TrajectoryVAE(nn.Module):
 
     def __init__(self, latent_size, num_actions,  num_joints, device, num_epoch=100,
-                 conv_model=True, kernel_row=4, conv_channel=2, beta_min=1.0e-4, beta_max=1.0e-0):
+                 conv_model=True, kernel_row=4, conv_channel=2, beta_interval=25, beta_min=1.0e-4, beta_max=1.0e-0):
 
         self.conv_model = conv_model
 
@@ -152,8 +152,10 @@ class TrajectoryVAE(nn.Module):
         self.num_joints = num_joints
         self.beta_min = beta_min
         self.beta_max = beta_max
+        self.beta = self.beta_min
         self.epoch_max = num_epoch
-        self.current_epoch = 0.
+        self.current_epoch = 0
+        self.beta_interval = beta_interval
 
     def set_mode(self, train):
         if train:
@@ -191,6 +193,10 @@ class TrajectoryVAE(nn.Module):
     def new_epoch(self):
         self.current_epoch += 1
 
+    def beta_updated(self):
+        return self.current_epoch % self.beta_interval == 0
+
+
     def evaluate(self, state):
 
         # state includes batch samples and a train / test flag
@@ -205,8 +211,11 @@ class TrajectoryVAE(nn.Module):
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-        beta = self.beta_min + (self.beta_max - self.beta_min) * self.current_epoch / self.epoch_max
-        return BCE + beta * KLD, self.to_trajectory(x_recon)
+
+        if self.beta_updated():
+            self.beta = self.beta_min + 1.0 * self.current_epoch * (self.beta_max - self.beta_min) / self.epoch_max
+        print(self.beta)
+        return BCE + self.beta * KLD, self.to_trajectory(x_recon)
 
     def latent_distribution(self, sample):
         self.set_mode(False)

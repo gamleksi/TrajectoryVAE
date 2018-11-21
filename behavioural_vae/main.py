@@ -1,5 +1,6 @@
 import os
 import torch
+import csv
 import numpy as np
 import torch.optim as optim
 from trajectory_loader import TrajectoryLoader
@@ -43,6 +44,11 @@ parser.set_defaults(conv=False)
 parser.add_argument('--conv-channel', default=2, type=int, help='1D conv out channel')
 parser.add_argument('--kernel-row', default=4, type=int, help='Size of Kernel window in 1D')
 
+parser.add_argument('--beta-interval', default=50, type=int, help='Step size for updating a beta value')
+parser.add_argument('--beta-min', default=1.0e-4, type=float, help='Initial value of beta')
+parser.add_argument('--beta-max', default=1.0, type=float, help='End value of beta')
+
+
 def use_cuda():
 
     use_cuda = torch.cuda.is_available()
@@ -55,12 +61,25 @@ def use_cuda():
     return torch.device('cuda' if use_cuda else 'cpu')
 
 
+def save_arguments(args):
+    save_path = os.path.join('log', args.folder_name)
+    args = vars(args)
+    if not(os.path.exists(save_path)):
+        os.makedirs(save_path)
+    w = csv.writer(open(os.path.join(save_path, "arguments.csv"), "w"))
+    for key, val in args.items():
+        w.writerow([key, val])
+
+
 def get_dataset_path(folder_name, dataset_root):
     return os.path.join(dataset_root, folder_name, 'trajectories.pkl')
 
+
 def define_model_name(latent_size, lr):
+
     file_name = 'model_l_{}_lr_{}'.format(latent_size, lr)
     return file_name
+
 
 np.random.seed(seed=7)
 torch.manual_seed(7)
@@ -86,6 +105,9 @@ def main(args):
     model_name = define_model_name(latent_size, lr)
     do_log = args.log
 
+    if do_log:
+        save_arguments(args)
+
     if debug:
         dataset_path = get_dataset_path('example', args.dataset_root)
     else:
@@ -94,7 +116,9 @@ def main(args):
     assert(os.path.exists(dataset_path))
 
     model = TrajectoryVAE(latent_size, num_actions, num_joints, device, num_epoch=num_epoch,
-                          conv_model=args.conv, kernel_row=args.kernel_row, conv_channel=args.conv_channel).to(device)
+                          conv_model=args.conv, kernel_row=args.kernel_row,
+                          conv_channel=args.conv_channel, beta_interval=args.beta_interval,
+                          beta_min=args.beta_min, beta_max=args.beta_max).to(device)
 
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 
