@@ -22,7 +22,7 @@ parser.add_argument('--num-actions', default=24, type=int)
 parser.add_argument('--num-joints', default=7, type=int)
 
 parser.add_argument('--dataset-name', default='example', type=str)
-parser.add_argument('--dataset-root', default='/home/aleksi/mujoco_ws/src/motion_planning/trajectory_data', type=str)
+parser.add_argument('--dataset-root', default='dset', type=str)
 
 parser.add_argument('--folder-name', default='trajectory_test', type=str)
 
