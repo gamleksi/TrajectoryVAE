@@ -111,19 +111,6 @@ class SimpleDecoder(nn.Module):
 import conv_model as cm
 
 
-def gauss_init(net):
-    for m in net.modules():
-        if isinstance(m, nn.Conv1d):
-            torch.nn.init.normal_(m.weight, std=0.01)
-            if m.bias is not None:
-                torch.nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm1d):
-            torch.nn.init.constant_(m.weight, 1)
-            torch.nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Linear):
-            torch.nn.init.normal_(m.weight, std=1e-3)
-            if m.bias is not None:
-                torch.nn.init.constant_(m.bias, 0)
 
 
 class TrajectoryVAE(nn.Module):
@@ -140,8 +127,6 @@ class TrajectoryVAE(nn.Module):
             encoder = SimpleEncoder(num_actions *num_joints, latent_size)
             decoder = SimpleDecoder(latent_size, num_actions * num_joints)
 
-        gauss_init(encoder)
-        gauss_init(decoder)
 
         super(TrajectoryVAE, self).__init__()
 

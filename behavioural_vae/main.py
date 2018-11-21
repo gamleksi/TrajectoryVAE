@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn as nn
 import csv
 import numpy as np
 import torch.optim as optim
@@ -33,10 +34,6 @@ parser.add_argument('--log', dest='log', action='store_true')
 parser.add_argument('--no-log', dest='log', action='store_false')
 parser.set_defaults(log=True)
 
-#parser.add_argument('--simple', dest='simple', action='store_true')
-#parser.add_argument('--no-simple', dest='simple', action='store_false')
-#parser.set_defaults(simple=True)
-
 parser.add_argument('--conv', dest='conv', action='store_true')
 parser.add_argument('--no-conv', dest='conv', action='store_false')
 parser.set_defaults(conv=False)
@@ -50,14 +47,12 @@ parser.add_argument('--beta-max', default=1.0, type=float, help='End value of be
 
 
 def use_cuda():
-
     use_cuda = torch.cuda.is_available()
     if use_cuda:
         print('GPU works!')
     else:
         for i in range(10):
             print('YOU ARE NOT USING GPU')
-
     return torch.device('cuda' if use_cuda else 'cpu')
 
 
@@ -69,6 +64,21 @@ def save_arguments(args):
     w = csv.writer(open(os.path.join(save_path, "arguments.csv"), "w"))
     for key, val in args.items():
         w.writerow([key, val])
+
+
+def gauss_init(net):
+    for m in net.modules():
+        if isinstance(m, nn.Conv1d):
+            torch.nn.init.normal_(m.weight, std=0.01)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.BatchNorm1d):
+            torch.nn.init.constant_(m.weight, 1)
+            torch.nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.Linear):
+            torch.nn.init.normal_(m.weight, std=1e-3)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
 
 
 def get_dataset_path(folder_name, dataset_root):
@@ -119,6 +129,9 @@ def main(args):
                           conv_model=args.conv, kernel_row=args.kernel_row,
                           conv_channel=args.conv_channel, beta_interval=args.beta_interval,
                           beta_min=args.beta_min, beta_max=args.beta_max).to(device)
+
+    gauss_init(model.encoder)
+    gauss_init(model.decoder)
 
     dataloader = TrajectoryLoader(batch_size, num_processes, dataset_path, actions_per_trajectory=num_actions)
 
