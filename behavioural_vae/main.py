@@ -14,12 +14,12 @@ parser = argparse.ArgumentParser(description='Variational Autoencoder for Trajec
 
 parser.add_argument('--lr', default=1.0e-3, type=float, help='Learning rate')
 parser.add_argument('--latent_size', default=4, type=int, help='Number of latent variables')
-parser.add_argument('--num_epoch', default=20, type=int, help='Number of epochs')
+parser.add_argument('--num-epoch', default=20, type=int, help='Number of epochs')
 parser.add_argument('--batch-size', default=552, type=int)
 parser.add_argument('--num_workers', default=18, type=int)
 
-parser.add_argument('--num_actions', default=24, type=int)
-parser.add_argument('--num_joints', default=7, type=int)
+parser.add_argument('--num-actions', default=24, type=int)
+parser.add_argument('--num-joints', default=7, type=int)
 
 parser.add_argument('--dataset-name', default='example', type=str)
 parser.add_argument('--dataset-root', default='/home/aleksi/mujoco_ws/src/motion_planning/trajectory_data', type=str)

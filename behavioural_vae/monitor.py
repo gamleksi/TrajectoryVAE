@@ -8,16 +8,10 @@ import os
 
 class Saver(object):
 
-    def __init__(self, model_name, save_path, debug):
+    def __init__(self, model_name, save_path):
         self.model_name = model_name
         self.save_path = save_path
         self.beta_update = 0
-
-        if not(debug):
-            assert(not(os.path.exists(self.save_path))) # remove a current folder with the same name or rename the suggested folder
-            os.makedirs(self.save_path)
-        elif not(os.path.exists(self.save_path)):
-            os.makedirs(self.save_path)
 
     def update_beta(self, beta_updated):
         if beta_updated:
@@ -62,7 +56,7 @@ class Trainer(Engine):
 
         if self.log_data:
             assert(save_folder is not None and save_name is not None)
-            self.saver = Saver(save_name, os.path.join('log', self.save_folder), self.debug)
+            self.saver = Saver(save_name, os.path.join('log', self.save_folder))
             self.best_loss = np.inf
             self.visualizer = TrajectoryVisualizer(os.path.join("log", self.save_folder))
 
@@ -120,7 +114,7 @@ class Trainer(Engine):
                 self.saver.save_model(self.model)
                 self.best_loss = val_loss
 
-            if epoch % self.model.beta_interval - 1 == 0:
+            if epoch % 49 == 0:
                 self.visual_trajectories(epoch)
 
 
