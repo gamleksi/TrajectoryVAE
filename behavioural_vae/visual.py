@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import numpy as np
 
 
