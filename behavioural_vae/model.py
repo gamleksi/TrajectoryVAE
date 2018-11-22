@@ -192,14 +192,15 @@ class TrajectoryVAE(nn.Module):
         train = state[1]
         x_recon,  mu, log_var = self._forward(x, train)
 
-        BCE = F.binary_cross_entropy(x_recon, trajectories, size_average=False)
+        BCE = F.mse_loss(x_recon, trajectories, size_average=False)
+
+        # BCE = F.binary_cross_entropy(x_recon, trajectories, size_average=False)
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
         if self.beta_updated():
             self.beta = self.beta_min + 1.0 * self.current_epoch * (self.beta_max - self.beta_min) / self.epoch_max
-        print(self.beta)
         return BCE + self.beta * KLD, self.to_trajectory(x_recon)
 
     def latent_distribution(self, sample):
