@@ -24,7 +24,7 @@ class ROSTrajectoryVAE(object):
         else:
             print('YOU ARE NOT USING GPU')
 
-        self.model = TrajectoryVAE(latent_dim, num_actions, num_joints, device).to(device)
+        self.model = TrajectoryVAE(latent_dim, num_actions, num_joints, device, conv_model=False).to(device)
         self.load_parameters(model_folder, root_path)
 
     def load_parameters(self, folder, root_path):
@@ -67,8 +67,8 @@ class RosTrajectoryConvVAE(ROSTrajectoryVAE):
         self.load_parameters(model_folder, root_path)
 
 def main():
-    return RosTrajectoryConvVAE('lumi_1DConv_b-1_l-5_a-32_ch-8', 5, 32, 4, 2)
+    return ROSTrajectoryVAE("mse_v2", 4, 24, num_joints=7)
 
 if __name__  == '__main__':
     model = main()
-    print(model.decode([0.2] * 5).shape)
+    print(model.decode([0.2] * 4).shape)

@@ -1,2 +1,3 @@
 python setup.py sdist --format=tar
 pip install dist/behavioural_vae-0.0.1.tar --user
+pip2.7 install dist/behavioural_vae-0.0.1.tar --user
