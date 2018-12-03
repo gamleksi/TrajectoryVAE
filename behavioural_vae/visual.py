@@ -1,6 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')
+# plt.switch_backend('agg')
 import numpy as np
 
 
@@ -78,6 +78,14 @@ class TrajectoryVisualizer(object):
                 path = self.sample_path
             plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
         plt.close()
+
+    def scatter_end_effoctor_poses(self, x_poses, y_poses):
+        fig = plt.figure(figsize=(30, 30))
+        plt.scatter(x_poses, y_poses)
+        plt.show()
+        plt.close()
+        plt.savefig(os.path.join(self.sample_path, '{}.png'.format('poses')))
+
 
 if __name__ == '__main__':
     TrajectoryVisualizer(os.path.join('log', 'lumi_v3'))
