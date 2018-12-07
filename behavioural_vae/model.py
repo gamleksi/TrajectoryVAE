@@ -127,7 +127,6 @@ class TrajectoryVAE(nn.Module):
             encoder = SimpleEncoder(num_actions *num_joints, latent_size)
             decoder = SimpleDecoder(latent_size, num_actions * num_joints)
 
-
         super(TrajectoryVAE, self).__init__()
 
         self.encoder = encoder

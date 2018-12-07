@@ -20,9 +20,9 @@ class ROSTrajectoryVAE(object):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         if device.type == 'cuda':
-            print('GPU works!')
+            print('GPU works for behavioral!')
         else:
-            print('YOU ARE NOT USING GPU')
+            print('Behavioural is not using GPU')
 
         self.model = TrajectoryVAE(latent_dim, num_actions, num_joints, device, conv_model=False).to(device)
         self.load_parameters(model_folder, root_path)
