@@ -12,6 +12,10 @@ class TrajectoryVisualizer(object):
         self.create_path(self.sample_path)
         self.train_losses = []
         self.val_losses = []
+        self.klds_train = []
+        self.klds_val = []
+        self.mses_train = []
+        self.mses_val = []
 
     def create_path(self, path):
         if not(os.path.exists(path)):
@@ -29,9 +33,37 @@ class TrajectoryVisualizer(object):
         plt.savefig(os.path.join(self.sample_path, 'loss.png'))
         plt.close()
 
+    def update_klds(self, kld_train, kld_val):
+
+        self.klds_train.append(kld_train)
+        self.klds_val.append(kld_val)
+
+        steps = range(1, len(self.klds_train) + 1)
+        plt.figure()
+        plt.plot(steps, self.klds_train, 'r', label='Train')
+        plt.plot(steps, self.klds_val, 'b', label='Validation')
+
+        plt.title('Average KLD')
+        plt.legend()
+        plt.savefig(os.path.join(self.sample_path, 'klds.png'))
+        plt.close()
+
+    def update_mses(self, mse_train, mse_val):
+
+        self.mses_train.append(mse_train)
+        self.mses_val.append(mse_val)
+
+        steps = range(1, len(self.mses_train) + 1)
+        plt.figure()
+        plt.plot(steps, self.mses_train, 'r', label='Train')
+        plt.plot(steps, self.mses_val, 'b', label='Validation')
+
+        plt.title('Average MSE')
+        plt.legend()
+        plt.savefig(os.path.join(self.sample_path, 'mses.png'))
+        plt.close()
+
     def generate_image(self, original, reconstructed, file_name=None, folder=None):
-        # w = original.shape[0]
-        # h = original.shape[1]
         fig = plt.figure(figsize=(30, 30))
         columns = 4
         rows = 1

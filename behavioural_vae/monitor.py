@@ -17,10 +17,10 @@ class Saver(object):
         if beta_updated:
             self.beta_update += 1
 
-    def log_csv(self, train_loss, val_loss, improved):
+    def log_csv(self, train_loss, val_loss, mse_loss, mse_val, kld_train, kld_val, improved):
 
-        fieldnames = ['train_loss', 'val_loss', 'improved', 'beta_update']
-        fields = [train_loss, val_loss, int(improved), self.beta_update]
+        fieldnames = ['train_loss', 'val_loss', 'mse_loss', 'mse_val', 'kld_train', 'kld_val', 'improved', 'beta_update']
+        fields = [train_loss, val_loss, mse_loss, mse_val, kld_train, kld_val, int(improved), self.beta_update]
         csv_path = os.path.join(self.save_path, 'log.csv')
         file_exists = os.path.isfile(csv_path)
 
@@ -48,6 +48,9 @@ class Trainer(Engine):
         self.dataloader = dataloader
         self.get_iterator = dataloader.get_iterator
         self.meter_loss = tnt.meter.AverageValueMeter()
+        self.kld = tnt.meter.AverageValueMeter()
+        self.mse = tnt.meter.AverageValueMeter()
+
         self.initialize_engine()
 
         self.model = model
@@ -71,13 +74,18 @@ class Trainer(Engine):
 
     def reset_meters(self):
         self.meter_loss.reset()
+        self.kld.reset()
+        self.mse.reset()
 
     def on_sample(self, state):
         state['sample'] = (state['sample'], state['train'])
 
     def on_forward(self, state):
         loss = state['loss']
+        mse, KLD = state['output']
         self.meter_loss.add(loss.item())
+        self.mse.add(mse.item())
+        self.kld.add(KLD.item())
 
     def on_start_epoch(self, state):
         self.model.new_epoch()
@@ -96,27 +104,32 @@ class Trainer(Engine):
     def on_end_epoch(self, state):
 
         epoch = int(state['epoch'])
-        train_loss = self.meter_loss.value()[0]
         print("EPOCH: {}".format(epoch))
-        print("Avg Training loss: {}".format(train_loss))
+        train_loss = self.meter_loss.value()[0]
+        mse_train = self.mse.value()[0]
+        kld_train = self.kld.value()[0]
+
         self.reset_meters()
         self.test(self.model.evaluate, self.get_iterator(False))
         val_loss = self.meter_loss.value()[0]
-        print("Avg Validation loss: {}".format(val_loss))
+        mse_val = self.mse.value()[0]
+        kld_val = self.kld.value()[0]
+
+        print("Loss train: {}, val: {}".format(train_loss, val_loss))
+        print("MSE: train: {}, val: {}".format(mse_train, mse_val))
+        print("KLD: train: {}, val: {}".format(kld_train, kld_val))
 
         if self.log_data:
             self.visualizer.update_losses(train_loss, val_loss)
+            self.visualizer.update_mses(mse_train, mse_val)
+            self.visualizer.update_klds(kld_train, kld_val)
 
             self.saver.update_beta(self.model.beta_updated())
-            self.saver.log_csv(train_loss, val_loss, val_loss < self.best_loss or self.model.beta_updated())
+            self.saver.log_csv(train_loss, val_loss, mse_train, mse_val, kld_train, kld_val, val_loss < self.best_loss or self.model.beta_updated())
 
             if val_loss < self.best_loss or self.model.beta_updated():
                 self.saver.save_model(self.model)
                 self.best_loss = val_loss
 
-            if epoch % 49 == 0:
+            if epoch % 99 == 0:
                 self.visual_trajectories(epoch)
-
-
-
-

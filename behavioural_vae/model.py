@@ -159,7 +159,7 @@ class TrajectoryVAE(nn.Module):
         if train:
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std).to(self.device)
-            return eps.mul(std).add_(mu)
+            return eps.mul(std).add(mu)
         else:
             return mu
 
@@ -184,23 +184,20 @@ class TrajectoryVAE(nn.Module):
     def evaluate(self, state):
 
         # state includes batch samples and a train / test flag
-        # samples should be tensors and processed in loader function.
 
         trajectories = self.to_torch(state[0])
         x = Variable(trajectories)
         train = state[1]
         x_recon,  mu, log_var = self._forward(x, train)
 
-        BCE = F.mse_loss(x_recon, trajectories, size_average=False)
-
-        # BCE = F.binary_cross_entropy(x_recon, trajectories, size_average=False)
+        renonstruction_loss = F.mse_loss(x_recon, trajectories)
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-        KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = -0.5 * torch.mean(1 + log_var - mu.pow(2) - log_var.exp())
 
         if self.beta_updated():
             self.beta = self.beta_min + 1.0 * self.current_epoch * (self.beta_max - self.beta_min) / self.epoch_max
-        return BCE + self.beta * KLD, self.to_trajectory(x_recon)
+        return renonstruction_loss + self.beta * KLD, (renonstruction_loss, KLD)
 
     def latent_distribution(self, sample):
         self.set_mode(False)
