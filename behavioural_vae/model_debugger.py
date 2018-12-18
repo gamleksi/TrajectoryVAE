@@ -28,7 +28,7 @@ def main(args):
         latents.append(latent.transpose(1, 0))
 
     latents = np.concatenate([l for l in latents], axis=1)
-    fig, axes = plt.subplots(args.latent_size, 1, sharey=True, figsize=[30, 30])
+    fig, axes = plt.subplots(args.latent_size, 1, sharex=True, figsize=[30, 30])
 
     for i in range(args.latent_size):
         ax = axes[i]

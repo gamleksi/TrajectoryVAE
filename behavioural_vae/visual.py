@@ -22,45 +22,45 @@ class TrajectoryVisualizer(object):
             os.makedirs(path)
 
     def update_losses(self, train_loss, val_loss):
-        self.train_losses.append(train_loss)
-        self.val_losses.append(val_loss)
+        self.train_losses.append(np.log(train_loss))
+        self.val_losses.append(np.log(val_loss))
         steps = range(1, len(self.train_losses) + 1)
         plt.figure()
         plt.plot(steps, self.train_losses, 'r', label='Train')
         plt.plot(steps, self.val_losses, 'b', label='Validation')
-        plt.title('Average Loss')
+        plt.title('Average Loss (in log scale)')
         plt.legend()
-        plt.savefig(os.path.join(self.sample_path, 'loss.png'))
+        plt.savefig(os.path.join(self.sample_path, 'log_loss.png'))
         plt.close()
 
     def update_klds(self, kld_train, kld_val):
 
-        self.klds_train.append(kld_train)
-        self.klds_val.append(kld_val)
+        self.klds_train.append(np.log(kld_train))
+        self.klds_val.append(np.log(kld_val))
 
         steps = range(1, len(self.klds_train) + 1)
         plt.figure()
         plt.plot(steps, self.klds_train, 'r', label='Train')
         plt.plot(steps, self.klds_val, 'b', label='Validation')
 
-        plt.title('Average KLD')
+        plt.title('Average KLD (in log scale)')
         plt.legend()
-        plt.savefig(os.path.join(self.sample_path, 'klds.png'))
+        plt.savefig(os.path.join(self.sample_path, 'log_klds.png'))
         plt.close()
 
     def update_mses(self, mse_train, mse_val):
 
-        self.mses_train.append(mse_train)
-        self.mses_val.append(mse_val)
+        self.mses_train.append(np.log(mse_train))
+        self.mses_val.append(np.log(mse_val))
 
         steps = range(1, len(self.mses_train) + 1)
         plt.figure()
         plt.plot(steps, self.mses_train, 'r', label='Train')
         plt.plot(steps, self.mses_val, 'b', label='Validation')
 
-        plt.title('Average MSE')
+        plt.title('Average MSE (in log scale)')
         plt.legend()
-        plt.savefig(os.path.join(self.sample_path, 'mses.png'))
+        plt.savefig(os.path.join(self.sample_path, 'log_mses.png'))
         plt.close()
 
     def generate_image(self, original, reconstructed, file_name=None, folder=None):
@@ -118,5 +118,33 @@ class TrajectoryVisualizer(object):
         plt.savefig(os.path.join(self.sample_path, '{}.png'.format('poses')))
 
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Loss updated')
+parser.add_argument('--folder-name', default='trajectory_test', type=str)
+
 if __name__ == '__main__':
-    TrajectoryVisualizer(os.path.join('log', 'lumi_v3'))
+
+    args = parser.parse_args()
+    model_path = os.path.join("log", args.folder_name)
+    visualizer = TrajectoryVisualizer(model_path)
+
+    log_file = os.path.join(model_path, 'log.csv')
+
+    with open(log_file, 'r') as f:
+
+        header = f.readline().rstrip()
+        i = 0
+        for line in f:
+            line_strip = line.rstrip()
+            components = line_strip.split(',')
+            visualizer.train_losses.append(np.log(float(components[0])))
+            visualizer.val_losses.append(np.log(float(components[1])))
+            visualizer.mses_train.append(np.log(float(components[2])))
+            visualizer.mses_val.append(np.log(float(components[3])))
+            visualizer.klds_train.append(np.log(float(components[4])))
+            visualizer.klds_val.append(np.log(float(components[5])))
+
+        visualizer.update_losses(np.exp(visualizer.train_losses[-1]), np.exp(visualizer.val_losses[-1]))
+        visualizer.update_klds(np.exp(visualizer.klds_train[-1]), np.exp(visualizer.klds_val[-1]))
+        visualizer.update_mses(np.exp(visualizer.mses_train[-1]), np.exp(visualizer.mses_val[-1]))
