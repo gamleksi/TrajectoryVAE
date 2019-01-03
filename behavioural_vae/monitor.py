@@ -39,11 +39,11 @@ class Saver(object):
         model_path = os.path.join(self.save_path, '{}_iter_{}.pth.tar'.format(self.model_name, self.beta_update))
         torch.save(model.state_dict(), model_path)
 
+
 class Trainer(Engine):
 
     def __init__(self, dataloader, model, save_folder=None, save_name=None, log=False, debug=False):
         super(Trainer, self).__init__()
-
         self.debug = debug
         self.dataloader = dataloader
         self.get_iterator = dataloader.get_iterator
@@ -93,13 +93,20 @@ class Trainer(Engine):
         self.reset_meters()
 
     def visual_trajectories(self, epoch):
+
         trajectories = self.dataloader.visual_trajectories().float()
-        results = self.model.reconstruct(trajectories)
-        results = results.detach().cpu()
-        folder = "trajectories_{}".format(epoch)
-        for i in range(results.shape[0]):
-            self.visualizer.generate_image(trajectories[i], results[i], file_name="{}_image".format(i), folder=folder)
-            self.visualizer.plot_trajectory(trajectories[i].numpy(), results[i].numpy(), file_name="{}_trajectory".format(i), folder=folder)
+        results, latents = self.model.reconstruct(trajectories)
+        trajectories = trajectories.numpy()
+        results = results.detach().cpu().numpy()
+        latents = latents.detach().cpu().numpy()
+        folder = "epoch_{}_results".format(epoch)
+
+        for i in range(10):
+            self.visualizer.generate_image(trajectories[i], results[i], file_name="image_{}".format(i), folder=folder)
+            self.visualizer.plot_trajectory(trajectories[i], results[i], file_name="trajectory_{}".format(i), folder=folder)
+
+        self.visualizer.trajectory_distributions(trajectories, results, "trajectory_distribution", folder)
+        self.visualizer.latent_distributions(latents, "latent_distributions", folder)
 
     def on_end_epoch(self, state):
 
@@ -131,5 +138,5 @@ class Trainer(Engine):
                 self.saver.save_model(self.model)
                 self.best_loss = val_loss
 
-            if epoch % 99 == 0:
+            if epoch % 40 == 0 or self.debug:
                 self.visual_trajectories(epoch)

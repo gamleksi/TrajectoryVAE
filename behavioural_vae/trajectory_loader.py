@@ -43,14 +43,14 @@ class TrajectoryLoader(object):
     def __init__(self, batch_size, num_processes, file_path, actions_per_trajectory=20, num_joints=7):
 
         self.dataset = TrajectoryDataset(file_path, num_joints, actions_per_trajectory)
-        train_size = int(self.dataset.__len__() * 0.7)
+        train_size = int(self.dataset.__len__() * 0.9)
         test_size = self.dataset.__len__() - train_size
         trainset, testset = torch.utils.data.random_split(self.dataset.positions, (train_size, test_size))
         self.batch_size = batch_size
         self.num_processes = num_processes
         self.trainset = trainset
         self.testset = testset
-        self.visualset = testset[:20]
+        self.visualset = testset[:100]
 
     def get_iterator(self, train):
 

@@ -193,10 +193,12 @@ class TrajectoryVAE(nn.Module):
         renonstruction_loss = F.mse_loss(x_recon, trajectories)
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-        KLD = -0.5 * torch.mean(1 + log_var - mu.pow(2) - log_var.exp())
+        KLD = - 0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), 1)
+        KLD = KLD.mean()
 
         if self.beta_updated():
             self.beta = self.beta_min + 1.0 * self.current_epoch * (self.beta_max - self.beta_min) / self.epoch_max
+
         return renonstruction_loss + self.beta * KLD, (renonstruction_loss, KLD)
 
     def latent_distribution(self, sample):
@@ -215,5 +217,5 @@ class TrajectoryVAE(nn.Module):
     def reconstruct(self, sample):
         trajectory = self.to_torch(sample)
         x = Variable(trajectory).to(self.device)
-        recon,  _, _ = self._forward(x, False)
-        return self.to_trajectory(recon)
+        recons, latents, _ = self._forward(x, False)
+        return self.to_trajectory(recons), latents

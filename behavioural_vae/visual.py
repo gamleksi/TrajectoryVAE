@@ -99,6 +99,7 @@ class TrajectoryVisualizer(object):
             plt.plot(steps, original[:, i], 'ro', label='Original joint {}'.format(i + 1))
             plt.plot(steps, reconstructed[:, i], 'bo', label='Decoded joint {}'.format(i + 1))
             plt.legend()
+            plt.ylim(0.0, 1.0)
 
         if file_name is None:
             plt.show()
@@ -116,6 +117,48 @@ class TrajectoryVisualizer(object):
         plt.scatter(x_poses, y_poses)
         plt.close()
         plt.savefig(os.path.join(self.sample_path, '{}.png'.format('poses')))
+
+    def trajectory_distributions(self, targets, reconstructions, file_name, folder):
+
+        assert(targets.shape[0] == reconstructions.shape[0])
+
+        num_joints = targets.shape[1]
+        fig, axes = plt.subplots(num_joints, 2, sharex=True, sharey=True, figsize=[30, 30])
+        steps = range(1, targets[0].shape[1] + 1)
+
+        labels = ("targets", "reconstructed")
+
+        for idx, trajectories in enumerate((targets, reconstructions)):
+            for joint_idx in range(num_joints):
+                ax = axes[joint_idx][idx]
+                for traj_idx in range(len(targets)):
+                    trajectory = trajectories[traj_idx]
+                    ax.plot(steps, trajectory[joint_idx])
+                ax.set_title("{} Joint {}".format(labels[idx], idx + 1))
+
+        path = os.path.join(self.sample_path, folder)
+        self.create_path(path)
+        plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
+        plt.close()
+
+    def latent_distributions(self, latents, file_name, folder):
+
+        latents = latents.transpose()
+
+        fig, axes = plt.subplots(latents.shape[0], 1, sharex=True, figsize=[30, 30])
+        for i in range(latents.shape[0]):
+            ax = axes[i]
+            batch = latents[i]
+            ax.hist(batch, 40)
+            ax.set_title('Latent {}'.format(i + 1))
+            ax.set_xlabel('x')
+            ax.set_ylabel('frequency')
+
+        fig.tight_layout(pad=2)
+        path = os.path.join(self.sample_path, folder)
+        self.create_path(path)
+        plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
+        plt.close()
 
 
 import argparse
