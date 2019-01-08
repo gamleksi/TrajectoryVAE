@@ -111,8 +111,6 @@ class SimpleDecoder(nn.Module):
 import conv_model as cm
 
 
-
-
 class TrajectoryVAE(nn.Module):
 
     def __init__(self, latent_size, num_actions,  num_joints, device, num_epoch=100,

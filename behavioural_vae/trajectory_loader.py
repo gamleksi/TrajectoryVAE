@@ -11,9 +11,11 @@ class TrajectoryDataset(data.Dataset):
         self.num_joints = num_joints
         self.num_actions = actions_per_trajectory
 
-        time_steps_raw, positions_raw, _, _ = self.load_trajectories(file_path)
+        data = self.load_trajectories(file_path)
+        time_steps_raw = data[0]
+        positions_raw = data[1]
 
-        self.num_samples =  time_steps_raw.shape[0]
+        self.num_samples = time_steps_raw.shape[0]
         self.positions = np.zeros([self.num_samples, self.num_joints, self.num_actions])
         self.time_steps = np.zeros([self.num_samples, self.num_actions])
         self.process_trajectories(time_steps_raw, positions_raw)

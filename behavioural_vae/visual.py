@@ -87,19 +87,26 @@ class TrajectoryVisualizer(object):
             plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
         plt.close()
 
-    def plot_trajectory(self, original, reconstructed, file_name=None, folder=None):
+    def plot_trajectory(self, original, reconstructed, std_reconstructions=None, file_name=None, folder=None):
+
         fig = plt.figure(figsize=(30, 30))
         columns = 1
-        original = original.transpose(1, 0)
-        reconstructed = reconstructed.transpose(1, 0)
-        rows = original.shape[1]
-        steps = range(1, original.shape[0] + 1)
+        rows = original.shape[0]
+        steps = range(1, original.shape[1] + 1)
         for i in range(rows):
+
             fig.add_subplot(rows, columns, i + 1)
-            plt.plot(steps, original[:, i], 'ro', label='Original joint {}'.format(i + 1))
-            plt.plot(steps, reconstructed[:, i], 'bo', label='Decoded joint {}'.format(i + 1))
+            plt.plot(steps, original[i], 'rs', label='Original joint {}'.format(i + 1))
+
+            if std_reconstructions is None:
+                plt.plot(steps, reconstructed[i], 'b^', label='Decoded joint {}'.format(i + 1))
+            else:
+                plt.plot(steps, reconstructed[i], 'b^', label='Decoded joint {}'.format(i + 1))
+                plt.plot(steps, std_reconstructions[0][i], 'b--', linewidth=2.0, label='Negative std joint {}'.format(i + 1))
+                plt.plot(steps, std_reconstructions[1][i], 'b--', linewidth=2.0, label='Positive std joint {}'.format(i + 1))
+
             plt.legend()
-            plt.ylim(0.0, 1.0)
+            plt.ylim(-0.1, 1.2)
 
         if file_name is None:
             plt.show()
@@ -118,7 +125,7 @@ class TrajectoryVisualizer(object):
         plt.close()
         plt.savefig(os.path.join(self.sample_path, '{}.png'.format('poses')))
 
-    def trajectory_distributions(self, targets, reconstructions, file_name, folder):
+    def trajectory_distributions(self, targets, reconstructions, file_name, folder=None):
 
         assert(targets.shape[0] == reconstructions.shape[0])
 
@@ -136,27 +143,38 @@ class TrajectoryVisualizer(object):
                     ax.plot(steps, trajectory[joint_idx])
                 ax.set_title("{} Joint {}".format(labels[idx], idx + 1))
 
-        path = os.path.join(self.sample_path, folder)
-        self.create_path(path)
+        fig.tight_layout(pad=2)
+
+        if folder is not None:
+            path = os.path.join(self.sample_path, folder)
+            self.create_path(path)
+        else:
+            path = self.sample_path
+
+
         plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
         plt.close()
 
-    def latent_distributions(self, latents, file_name, folder):
+    def latent_distributions(self, latents, file_name, folder=None, bins=40):
 
-        latents = latents.transpose()
+        # latents = latents.transpose()
 
         fig, axes = plt.subplots(latents.shape[0], 1, sharex=True, figsize=[30, 30])
         for i in range(latents.shape[0]):
             ax = axes[i]
             batch = latents[i]
-            ax.hist(batch, 40)
+            ax.hist(batch, bins=bins)
             ax.set_title('Latent {}'.format(i + 1))
             ax.set_xlabel('x')
             ax.set_ylabel('frequency')
 
         fig.tight_layout(pad=2)
-        path = os.path.join(self.sample_path, folder)
-        self.create_path(path)
+        if folder is not None:
+            path = os.path.join(self.sample_path, folder)
+            self.create_path(path)
+        else:
+            path = self.sample_path
+
         plt.savefig(os.path.join(path, '{}.png'.format(file_name)))
         plt.close()
 

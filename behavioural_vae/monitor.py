@@ -105,8 +105,8 @@ class Trainer(Engine):
             self.visualizer.generate_image(trajectories[i], results[i], file_name="image_{}".format(i), folder=folder)
             self.visualizer.plot_trajectory(trajectories[i], results[i], file_name="trajectory_{}".format(i), folder=folder)
 
-        self.visualizer.trajectory_distributions(trajectories, results, "trajectory_distribution", folder)
-        self.visualizer.latent_distributions(latents, "latent_distributions", folder)
+        self.visualizer.trajectory_distributions(trajectories, results, "trajectory_distribution", folder=folder)
+        self.visualizer.latent_distributions(latents.transpose(), "latent_distributions", folder=folder)
 
     def on_end_epoch(self, state):
 
