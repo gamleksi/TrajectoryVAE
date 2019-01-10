@@ -7,7 +7,6 @@ import argparse
 from torch.nn import functional as F
 from torch.utils import data
 from torch.autograd import Variable
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 torch.random.manual_seed(555)
@@ -26,10 +25,6 @@ class Predictor(nn.Module):
         self.fc2_mean = nn.Linear(24, 24)
         self.fc3_mean = nn.Linear(24, latent_size)
 
-#        self.fc1_scale = nn.Linear(3, 24)
-#        self.fc2_scale = nn.Linear(24, 24)
-#        self.fc3_scale = nn.Linear(24, latent_size)
-
         self.relu = nn.ReLU()
         self.softplus = nn.Softplus()
 
@@ -44,17 +39,13 @@ class Predictor(nn.Module):
         print(self.fc3_mean.weight)
         print(self.fc3_mean.bias)
 
-    def forward(self, x):
+    def forward(self, X):
 
-        loc = self.relu(self.fc1_mean(x))
-        loc = self.relu(self.fc2_mean(loc))
-        loc = self.fc3_mean(loc)
+        X = self.relu(self.fc1_mean(X))
+        X = self.relu(self.fc2_mean(X))
+        X = self.fc3_mean(X)
 
-#        scale = self.relu(self.fc1_scale(x))
-#        scale = self.relu(self.fc2_scale(scale))
-#        scale = self.softplus(self.fc3_scale(scale))
-
-        return loc
+        return X
 
     def init_weights(self):
 
@@ -83,13 +74,17 @@ def plot_loss(train, val, title, save_to):
 def get_model_directory(model):
     return os.path.join('log', model)
 
+def take_num(elem):
+    elem = elem.split('_')[-1]
+    elem = elem.split('.')[0]
+    val = int(elem)
+    return val
 
 def get_reconstruction_results(model, index):
     model_dir = get_model_directory(model)
     results_path = os.path.join(model_dir, 'reconstruction_results')
     results = os.listdir(results_path)
-    results.sort() # TODO fix the bug
-    print(results[index])
+    results.sort(key=take_num) # TODO fix the bug
     end_poses, pose_results, latents, trajectories, recons = np.load(os.path.join(results_path , results[index]))
     return end_poses, pose_results, latents, trajectories, recons
 
@@ -134,88 +129,131 @@ def main(args):
     else:
         print('Behavioural is not using GPU')
 
-    model = Predictor(latent_size=args.latent_size)
-    model.to(device)
+    model_dir = get_model_directory(args.vae_name)
+    results_path = os.path.join(model_dir, 'reconstruction_results')
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    optimizer.zero_grad()
+    if args.debug:
+        num_datasets = 2
+    else:
+        # Run with all the generated datasets
+        num_datasets = len(os.listdir(results_path))
 
-    dataset = load_dataset(args.vae_name, args.model_index)
+    overall_best_val = np.inf
+    overall_best_idx = 0
 
-    print("Dataset size", dataset.__len__())
-    train_size = int(dataset.__len__() * 0.7)
-    test_size = dataset.__len__() - train_size
+    fig = plt.figure()
 
-    trainset, testset = data.random_split(dataset, (train_size, test_size))
+    logger = open(os.path.join(save_path, "model_results.txt"), 'w')
 
-    train_loader = data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_processes)
-    test_loader = data.DataLoader(testset, batch_size=testset.__len__())
+    if args.model_index < 0:
+        model_iter = range(num_datasets)
+    else:
+        model_iter = range(args.model_index, args.model_index + 1)
 
-    best_val = np.inf
-    avg_train_losses = []
-    avg_val_losses = []
+    for model_idx in model_iter:
 
+        model = Predictor(latent_size=args.latent_size)
+        model.to(device)
 
-    for epoch in range(args.num_epoch):
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+        optimizer.zero_grad()
 
-        print("Epoch {}".format(epoch + 1))
+        dataset = load_dataset(args.vae_name, model_idx, args.preprocess)
 
-        model.train()
+        print("Dataset size", dataset.__len__())
+        train_size = int(dataset.__len__() * 0.7)
+        test_size = dataset.__len__() - train_size
 
-        # Training
-        train_losses = []
-        for coords, targets in tqdm(train_loader):
+        trainset, testset = data.random_split(dataset, (train_size, test_size))
 
-            coords, targets = coords.to(device), targets.to(device)
+        train_loader = data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_processes)
+        test_loader = data.DataLoader(testset, batch_size=testset.__len__())
 
-            outputs = model(Variable(coords))
-            loss = F.mse_loss(outputs, targets)
+        best_val = np.inf
+        avg_train_losses = []
+        avg_val_losses = []
 
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+        for epoch in range(args.num_epoch):
 
-            train_losses.append(loss.item())
+            print("Epoch {}".format(epoch + 1))
 
-        avg_loss = np.mean(train_losses)
-        avg_train_losses.append(avg_loss)
-        print("Average training Loss {}".format(avg_loss))
+            model.train()
 
-        model.eval()
+            # Training
+            train_losses = []
+            for coords, targets in train_loader:
 
-        # Validation
-        val_losses = []
-        for coords, targets in tqdm(test_loader):
+                coords, targets = coords.to(device), targets.to(device)
 
-            coords, targets = coords.to(device), targets.to(device)
-            outputs = model(Variable(coords))
-            loss = F.mse_loss(outputs, targets)
+                outputs = model(Variable(coords))
+                loss = F.mse_loss(outputs, targets)
 
-            val_losses.append(loss.item())
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
-        avg_loss = np.mean(val_losses)
-        avg_val_losses.append(avg_loss)
+                train_losses.append(loss.item())
 
-        print("Average validation Loss {}".format(avg_loss))
+            avg_loss = np.mean(train_losses)
+            avg_train_losses.append(avg_loss)
+            print("Average training Loss {}".format(avg_loss))
 
-        if avg_loss < best_val:
-            best_val = avg_loss
-            torch.save(model.state_dict(), os.path.join(save_path, 'model.pth.tar'))
+            model.eval()
 
-        plot_loss(avg_train_losses, avg_val_losses, 'Avg mse', os.path.join(save_path, 'avg_mse.png'))
-        plot_loss(np.log(avg_train_losses), np.log(avg_val_losses), 'Avg mse in log scale', os.path.join(save_path, 'avg_log_mse.png'))
+            # Validation
+            val_losses = []
+            for coords, targets in test_loader:
+
+                coords, targets = coords.to(device), targets.to(device)
+                outputs = model(Variable(coords))
+                loss = F.mse_loss(outputs, targets)
+
+                val_losses.append(loss.item())
+
+            avg_loss = np.mean(val_losses)
+            avg_val_losses.append(avg_loss)
+
+            print("Average validation Loss {}".format(avg_loss))
+
+            if avg_loss < best_val:
+                best_val = avg_loss
+                torch.save(model.state_dict(), os.path.join(save_path, 'model_{}.pth.tar'.format(model_idx)))
+
+            plot_loss(avg_train_losses, avg_val_losses, 'Avg mse', os.path.join(save_path, 'avg_mse_{}.png'.format(model_idx)))
+            plot_loss(np.log(avg_train_losses), np.log(avg_val_losses), 'Avg mse in log scale', os.path.join(save_path, 'avg_log_mse_{}.png'.format(model_idx)))
+
+        plt.plot(range(1, args.num_epoch + 1), avg_val_losses, label='Model Id {}'.format(model_idx))
+
+        np.savetxt(os.path.join(save_path, 'losses_model_{}.txt'.format(model_idx)),
+                   np.array([avg_train_losses, avg_val_losses]).T)
+        if best_val < overall_best_val:
+            overall_best_idx = model_idx
+            overall_best_val = best_val
+            print('New major model')
+            torch.save(model.state_dict(), os.path.join(save_path, 'model.pth.tar'.format(model_idx)))
+
+        logger.write("idx: {}, val loss: {}, dataset size {}\n".format(model_idx, best_val, dataset.__len__()))
+
+    plt.title("overall avg losses")
+    plt.legend()
+    plt.savefig(os.path.join(save_path, "overall_val_losses.png"))
+    plt.close()
+
+    logger.write("overall best idx: {}, val loss: {}\n".format(overall_best_idx, overall_best_val))
+
 
 parser = argparse.ArgumentParser(description='Latent Predictor')
 
 parser.add_argument('--latent-size', default=5, type=int, help='Number of latent variables')
 parser.add_argument('--vae-name', default='rtt-star-beta-iterative-latent-5-b-max-small_v2', type=str)
-parser.add_argument('--model-index', default=0, type=int)
+parser.add_argument('--model-index', default=-1, type=int)
 parser.add_argument('--batch-size', default=124, type=int)
-parser.add_argument('--num-processes', default=17, type=int)
+parser.add_argument('--num-processes', default=16, type=int)
 parser.add_argument('--num-epoch', default=17, type=int)
 parser.add_argument('--lr', default=1e-3, type=float)
 parser.add_argument('--debug', action="store_true")
 parser.add_argument('--save-folder', default='example', type=str)
+parser.add_argument('--preprocess', action="store_true")
 
 
 if __name__ == '__main__':
