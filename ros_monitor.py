@@ -20,7 +20,7 @@ def model_name_search(folder_path, model_index=0):
 
 class ROSTrajectoryVAE(object):
 
-    def __init__(self, model_folder, latent_dim, num_actions, model_index=0, num_joints=7, root_path=ABSOLUTE_DIR):
+    def __init__(self, model_dir, latent_dim, num_actions, model_index=0, num_joints=7):
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -30,13 +30,12 @@ class ROSTrajectoryVAE(object):
             print('Behavioural is not using GPU')
 
         self.model = TrajectoryVAE(latent_dim, num_actions, num_joints, device, conv_model=False).to(device)
-        self.load_parameters(model_folder, root_path, model_index)
+        self.load_parameters(model_dir, model_index)
 
-    def load_parameters(self, folder, root_path, model_index):
+    def load_parameters(self,model_dir, model_index):
 
-        model_path = os.path.join(root_path, 'log', folder)
-        model_name = model_name_search(model_path, model_index=model_index)
-        path = os.path.join(model_path, '{}.pth.tar'.format(model_name))
+        model_name = model_name_search(model_dir, model_index=model_index)
+        path = os.path.join(model_dir, '{}.pth.tar'.format(model_name))
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
