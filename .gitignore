@@ -1,3 +1,12 @@
 */log/*
 *.swp
 *.pyc
+.idea/
+.ipynb_checkpoints/
+hardcopy.*
+dset/*
+pred_log
+log
+
+behavioural_vae/*
+
