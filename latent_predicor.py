@@ -245,7 +245,7 @@ def main(args):
 parser = argparse.ArgumentParser(description='Latent Predictor')
 
 parser.add_argument('--latent-size', default=5, type=int, help='Number of latent variables')
-parser.add_argument('--vae-name', default='rtt-star-beta-iterative-latent-5-b-max-small_v2', type=str)
+parser.add_argument('--vae-name', default='model_v2', type=str)
 parser.add_argument('--model-index', default=-1, type=int)
 parser.add_argument('--batch-size', default=124, type=int)
 parser.add_argument('--num-processes', default=16, type=int)

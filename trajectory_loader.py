@@ -27,9 +27,8 @@ class TrajectoryDataset(data.Dataset):
         return self.num_samples
 
     def load_trajectories(self, file_path):
-
-        time_steps_raw, positions_raw, velocity_raw, accelrator_raw = np.load(file_path)
-        return time_steps_raw, positions_raw, velocity_raw, accelrator_raw
+        time_steps_raw, positions_raw, velocity_raw, accelrator_raw, end_poses = np.load(file_path)
+        return time_steps_raw, positions_raw, velocity_raw, accelrator_raw, end_poses
 
     def process_trajectories(self, time_steps_raw, positions_raw):
 

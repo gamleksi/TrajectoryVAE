@@ -4,9 +4,15 @@ from model import TrajectoryVAE
 
 ABSOLUTE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def take_num(elem):
+    elem = elem.split('_')[-1]
+    elem = elem.split('.')[0]
+    val = int(elem)
+    return val
+
 def model_name_search(folder_path, model_index=0):
 
-    # TODO save models to models directory
     splitted = []
 
     for file in os.listdir(folder_path):
@@ -14,8 +20,7 @@ def model_name_search(folder_path, model_index=0):
             splitted.append(file.split('.pth', 1)[0])
     assert(splitted.__len__() > 0)
 
-    # This is necessary for model_indexing
-    splitted.sort()
+    splitted.sort(key=take_num)
     return splitted[model_index]
 
 class ROSTrajectoryVAE(object):
