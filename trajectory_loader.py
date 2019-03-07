@@ -30,6 +30,9 @@ class TrajectoryDataset(data.Dataset):
         time_steps_raw, positions_raw, velocity_raw, accelrator_raw, end_poses = np.load(file_path)
         return time_steps_raw, positions_raw, velocity_raw, accelrator_raw, end_poses
 
+
+    # Normalize and shorten the trajectories to X number of steps (smooth_trajectory)
+
     def process_trajectories(self, time_steps_raw, positions_raw):
 
         for i in range(self.num_samples):
@@ -38,6 +41,7 @@ class TrajectoryDataset(data.Dataset):
             self.positions[i] = smooth_positions
 
         self.positions = (self.positions - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE)
+
 
 class TrajectoryLoader(object):
 

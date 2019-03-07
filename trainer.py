@@ -8,8 +8,7 @@ import os
 
 class Saver(object):
 
-    def __init__(self, model_name, save_path):
-        self.model_name = model_name
+    def __init__(self, save_path):
         self.save_path = save_path
         self.beta_update = 0
 
@@ -36,13 +35,13 @@ class Saver(object):
 
     def save_model(self, model):
 
-        model_path = os.path.join(self.save_path, '{}_iter_{}.pth.tar'.format(self.model_name, self.beta_update))
+        model_path = os.path.join(self.save_path, 'model_iter_{}.pth.tar'.format(self.beta_update))
         torch.save(model.state_dict(), model_path)
 
 
 class Trainer(Engine):
 
-    def __init__(self, dataloader, model, save_folder=None, save_name=None, log=False, debug=False):
+    def __init__(self, dataloader, model, save_path, log=True, debug=False):
         super(Trainer, self).__init__()
         self.debug = debug
         self.dataloader = dataloader
@@ -55,13 +54,11 @@ class Trainer(Engine):
 
         self.model = model
         self.log_data = log
-        self.save_folder = save_folder
 
         if self.log_data:
-            assert(save_folder is not None and save_name is not None)
-            self.saver = Saver(save_name, os.path.join('log', self.save_folder))
+            self.saver = Saver(save_path)
             self.best_loss = np.inf
-            self.visualizer = TrajectoryVisualizer(os.path.join("log", self.save_folder))
+            self.visualizer = TrajectoryVisualizer(save_path)
 
     def initialize_engine(self):
         self.hooks['on_sample'] = self.on_sample

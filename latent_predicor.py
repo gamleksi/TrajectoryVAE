@@ -15,6 +15,7 @@ np.random.seed(444)
 LUMI_X_LIM = [0.3, 0.55]
 LUMI_Y_LIM = [-0.4, 0.4]
 
+
 class Predictor(nn.Module):
 
     def __init__(self, latent_size):

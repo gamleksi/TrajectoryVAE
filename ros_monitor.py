@@ -1,27 +1,6 @@
-import os
 import torch
-from model import TrajectoryVAE
+from trajectory_vae import TrajectoryVAE, load_parameters
 
-ABSOLUTE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-def take_num(elem):
-    elem = elem.split('_')[-1]
-    elem = elem.split('.')[0]
-    val = int(elem)
-    return val
-
-def model_name_search(folder_path, model_index=0):
-
-    splitted = []
-
-    for file in os.listdir(folder_path):
-        if file.endswith(".tar"):
-            splitted.append(file.split('.pth', 1)[0])
-    assert(splitted.__len__() > 0)
-
-    splitted.sort(key=take_num)
-    return splitted[model_index]
 
 class ROSTrajectoryVAE(object):
 
@@ -35,14 +14,7 @@ class ROSTrajectoryVAE(object):
             print('Behavioural is not using GPU')
 
         self.model = TrajectoryVAE(latent_dim, num_actions, num_joints, device, conv_model=False).to(device)
-        self.load_parameters(model_dir, model_index)
-
-    def load_parameters(self,model_dir, model_index):
-
-        model_name = model_name_search(model_dir, model_index=model_index)
-        path = os.path.join(model_dir, '{}.pth.tar'.format(model_name))
-        self.model.load_state_dict(torch.load(path))
-        self.model.eval()
+        load_parameters(self.model, model_dir, model_index)
 
     def _process_sample(self, sample):
         sample = torch.FloatTensor(sample)
@@ -62,7 +34,7 @@ class ROSTrajectoryVAE(object):
 
 class RosTrajectoryConvVAE(ROSTrajectoryVAE):
 
-    def __init__(self, model_folder, latent_size, num_actions, kernel_row, conv_channel, num_joints=7,  root_path=ABSOLUTE_DIR):
+    def __init__(self, model_dir, latent_size, num_actions, kernel_row, conv_channel, model_index=0, num_joints=7):
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -74,7 +46,7 @@ class RosTrajectoryConvVAE(ROSTrajectoryVAE):
         self.model = TrajectoryVAE(latent_size, num_actions, num_joints, device,
                           conv_model=True, kernel_row=kernel_row, conv_channel=conv_channel).to(device)
 
-        self.load_parameters(model_folder, root_path)
+        load_parameters(self.model, model_dir, model_index)
 
 def main():
     return ROSTrajectoryVAE("mse_v2", 4, 24, num_joints=7)

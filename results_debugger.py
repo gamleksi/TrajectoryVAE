@@ -4,33 +4,18 @@ import numpy as np
 from ros_monitor import ROSTrajectoryVAE
 from torch.autograd import Variable
 from trajectory_loader import TrajectoryLoader
-import matplotlib.pyplot as plt
 import argparse
 from visual import TrajectoryVisualizer
 import torch
 
+
+'''
+To understand trade-off between reconstruction and KL-divergence 
+'''
+
+
 def get_dataset_path(folder_name, dataset_root):
     return os.path.join(dataset_root, folder_name, 'trajectories.pkl')
-
-
-#def trajectory_distributions(targets, reconstructions, file_name, args):
-#
-#    assert(targets.shape[0] == reconstructions.shape[0])
-#
-#    fig, axes = plt.subplots(args.num_joints, 2, sharex=True, sharey=True, figsize=[30, 30])
-#    steps = range(1, targets[0].shape[1] + 1)
-#
-#    labels = ("targets", "reconstructed")
-#
-#    for idx, trajectories in enumerate((targets, reconstructions)):
-#        for joint_idx in range(args.num_joints):
-#            ax = axes[joint_idx][idx]
-#            for traj_idx in range(len(targets)):
-#                trajectory = trajectories[traj_idx]
-#                ax.plot(steps, trajectory[joint_idx])
-#            ax.set_title("{} Joint {}".format(labels[idx], idx + 1))
-#    plt.savefig(os.path.join(os.path.join('log', args.model_name, file_name)))
-#    plt.close()
 
 
 def get_number_of_models(model_name):
@@ -134,7 +119,8 @@ def main(args):
                     file_name="std_samples_{}_model_{}.png".format(idx, model_idx), folder='results')
     log_file.close()
 
-parser = argparse.ArgumentParser(description='Model debugger: latents distribution')
+
+parser = argparse.ArgumentParser(description='Model debugger: latent distribution')
 parser.add_argument('--latent-size', default=5, type=int, help='Number of latent variables')
 parser.add_argument('--num-joints', default=7, type=int)
 parser.add_argument('--num-actions', default=24, type=int)

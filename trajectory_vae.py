@@ -1,7 +1,38 @@
+import os
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
+import conv_model as cm
+
+
+def take_num(elem):
+    elem = elem.split('_')[-1]
+    elem = elem.split('.')[0]
+    val = int(elem)
+    return val
+
+
+def model_name_search(folder_path, model_index=0):
+
+    splitted = []
+
+    for file in os.listdir(folder_path):
+        if file.endswith(".tar"):
+            splitted.append(file.split('.pth', 1)[0])
+    assert(splitted.__len__() > 0)
+
+    splitted.sort(key=take_num)
+    return splitted[model_index]
+
+
+def load_parameters(model, model_dir, model_index):
+
+    model_name = model_name_search(model_dir, model_index=model_index)
+    path = os.path.join(model_dir, '{}.pth.tar'.format(model_name))
+    model.load_state_dict(torch.load(path))
+    model.eval()
+
 
 class Encoder(nn.Module):
     def __init__(self, input_size, output_size):
@@ -87,8 +118,6 @@ class Decoder(nn.Module):
         return x
 
 
-
-
 class SimpleDecoder(nn.Module):
     def __init__(self, input_size, output_size):
         super(SimpleDecoder, self).__init__()
@@ -108,7 +137,6 @@ class SimpleDecoder(nn.Module):
         x = self.sigmoid(self.fc3(x))
         return x
 
-import conv_model as cm
 
 
 class TrajectoryVAE(nn.Module):
@@ -165,7 +193,6 @@ class TrajectoryVAE(nn.Module):
         assert(len(trajectories.shape) == 3)
         if self.conv_model:
             return trajectories.to(self.device).float()
-            # return trajectories.unsqueeze(1).to(self.device).float()
         else:
             return trajectories.reshape([trajectories.shape[0], self.num_actions * self.num_joints]).to(self.device).float()
 
@@ -182,7 +209,6 @@ class TrajectoryVAE(nn.Module):
     def evaluate(self, state):
 
         # state includes batch samples and a train / test flag
-
         trajectories = self.to_torch(state[0])
         x = Variable(trajectories)
         train = state[1]

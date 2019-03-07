@@ -179,15 +179,18 @@ class TrajectoryVisualizer(object):
         plt.close()
 
 
-import argparse
-
-parser = argparse.ArgumentParser(description='Loss updated')
-parser.add_argument('--folder-name', default='trajectory_test', type=str)
 
 if __name__ == '__main__':
 
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Loss updated')
+    parser.add_argument('--model-name', default='trajectory_test', type=str)
+    parser.add_argument('--log-path', default='log', type=str)
+
     args = parser.parse_args()
-    model_path = os.path.join("log", args.folder_name)
+    model_path = os.path.join(args.log_path, args.model_name)
+
     visualizer = TrajectoryVisualizer(model_path)
 
     log_file = os.path.join(model_path, 'log.csv')
