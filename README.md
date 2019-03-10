@@ -19,6 +19,8 @@ Figure 1 shows the structure of the model.
 
 ## Model
 
+TrajectoryVAE represents task suitable trajectories in a low-dimensional latent space:
+
 ![the VAED structure](images/trajvae.png?raw=true)
 
 ## Setup
