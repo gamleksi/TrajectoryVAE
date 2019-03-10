@@ -19,20 +19,13 @@ Figure 1 shows the structure of the model.
 
 ## Model
 
-This reprository inroduces the variational affordance encoder-decoder structure:
-
 ![the VAED structure](images/trajvae.png?raw=true)
 
 ## Setup
 
 Install required depedencies To install ```pip install -r requirements.txt```.
 
-## Blender VAED
+## Run
 
-1) Generate training data with [BlenderDomainRandomizer](https://github.com/gamleksi/BlenderDomainRandomizer).
-3) Run ```python blender_main.py -h``` to see how to include the generated training data and rest of the options.
-
-## UMD VAED
-
-1) Load [the UMD-dataset](http://users.umiacs.umd.edu/~amyers/part-affordance-dataset/)
-2) Run ```python umd_main.py -h``` to see how to include the loaded UMD dataset.
+1) Generate training data with [affordance_gym](https://github.com/gamleksi/affordance_gym) (scripts/generate_trajectories.py).
+3) Run ```python main.py -h``` to see how to include the generated training data and explore rest of the running options.
